@@ -1,8 +1,8 @@
 # Include
 
 This folder contains the main ESP32 firmware headers for the Advanced Robotics
-Project (Robjut). Most project logic is still header-based so it can be called
-directly from `src/main.cpp`.
+Project. Most project logic is still header-based so it can be called directly
+from `src/main.cpp`.
 
 ## Important Files
 

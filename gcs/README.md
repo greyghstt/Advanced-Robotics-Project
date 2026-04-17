@@ -16,7 +16,7 @@ The active dashboard is the WiFi UDP version.
 Use the Python installation that already has PySide6 and pyserial available.
 
 ```powershell
-cd C:\vscode\Project-Robjut\gcs
+cd C:\vscode\Advanced-Robotics-Project\gcs
 python -m pip install -r requirements.txt
 ```
 
@@ -35,7 +35,7 @@ enabled:
 Run the dashboard:
 
 ```powershell
-cd C:\vscode\Project-Robjut\gcs
+cd C:\vscode\Advanced-Robotics-Project\gcs
 python gcs_udp.py
 ```
 

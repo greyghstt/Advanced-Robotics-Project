@@ -1,7 +1,6 @@
-# Advanced Robotics Project (Robjut)
+# Advanced Robotics Project
 
 ESP32 firmware for a quadcopter developed for the Advanced Robotics course.
-The name **Robjut** is used as a short form of Robotika Lanjut.
 
 ## Current Status
 
@@ -18,7 +17,7 @@ The name **Robjut** is used as a short form of Robotika Lanjut.
 ## Folder Structure
 
 ```text
-Proyek-Robotika-Lanjut/
+Advanced-Robotics-Project/
 |-- include/              Firmware headers and main configuration
 |-- src/                  ESP32 firmware entry point
 |-- gcs/                  Python dashboard application
@@ -56,7 +55,7 @@ The mixer uses a diagonal/X quadcopter layout:
 Current local project path:
 
 ```text
-C:\vscode\Project-Robjut
+C:\vscode\Advanced-Robotics-Project
 ```
 
 4. Connect the ESP32 through USB.
@@ -74,7 +73,7 @@ Using the PlatformIO UI:
 Using the terminal:
 
 ```powershell
-cd C:\vscode\Project-Robjut
+cd C:\vscode\Advanced-Robotics-Project
 platformio run -e esp32doit-devkit-v1
 platformio run -e esp32doit-devkit-v1 -t upload
 ```
@@ -112,7 +111,7 @@ UDP GCS is used for the WiFi dashboard with low latency. Connection flow:
 4. Run the dashboard:
 
 ```powershell
-cd C:\vscode\Project-Robjut\gcs
+cd C:\vscode\Advanced-Robotics-Project\gcs
 python gcs_udp.py
 ```
 
@@ -140,11 +139,11 @@ Bluetooth GCS can be used again if the Bluetooth mode is re-enabled:
 Run the dashboard:
 
 ```powershell
-cd C:\vscode\Project-Robjut\gcs
+cd C:\vscode\Advanced-Robotics-Project\gcs
 python gcs.py
 ```
 
-Pair Windows with the `Robjut-GCS` device, select the COM port, then click
+Pair Windows with the Bluetooth GCS device, select the COM port, then click
 `Connect`.
 
 ## WiFi HTTP Telemetry

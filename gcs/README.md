@@ -8,7 +8,7 @@ The active dashboard is the WiFi UDP version.
 | File | Purpose |
 | --- | --- |
 | `gcs_udp.py` | Active WiFi UDP dashboard |
-| `gcs.py` | Archived Bluetooth Serial dashboard |
+| `gcs.py` | Commented Bluetooth Serial archive |
 | `requirements.txt` | Python dashboard dependencies |
 
 ## Dependencies
@@ -26,9 +26,6 @@ UDP is the active firmware mode. Make sure `include/Gcs_config.h` keeps UDP
 enabled:
 
 ```cpp
-// System A is kept as archived code and is not used in this version.
-// #define ENABLE_WIFI_HTTP_TELEMETRY 0
-// #define ENABLE_BT_GCS 0
 #define ENABLE_UDP_GCS 1
 ```
 
@@ -53,15 +50,27 @@ Connection flow:
 The dashboard sends `HELLO` to the ESP32. After the ESP32 receives `HELLO`,
 telemetry starts streaming to the dashboard.
 
-<!--
-## Bluetooth GCS
+## Dashboard Features
 
-This section is kept as System A archive. Bluetooth GCS is not used in the
-current firmware because UDP GCS is the active mode.
+- Clear UDP connection state, telemetry age, and received packet count.
+- Telemetry timeout warning when packets stop arriving.
+- PID send buttons are locked while `arm=1`.
+- Firmware command responses are shown in the header and log panel.
+- PID values can be requested automatically and loaded from telemetry.
+- PID presets can be loaded, saved, and deleted locally.
+- Telemetry can be recorded to CSV files under `gcs/logs/`.
+- Motor PWM values are shown as live bars.
+- Roll and pitch are shown on the attitude chart with a `+/-30 deg` limit.
 
-To use this mode again, the archived Bluetooth firmware code must be restored
-and the mode must be enabled in `include/Gcs_config.h`.
--->
+## Archived Bluetooth GCS
+
+Bluetooth GCS is kept as archived System A code. It is not used in the current
+firmware because UDP GCS is the active mode.
+
+The Bluetooth dashboard file, `gcs.py`, is intentionally commented out. To use
+this mode again, restore the archived Bluetooth firmware/dashboard code, enable
+the Bluetooth mode in `include/Gcs_config.h`, then rebuild and upload the
+firmware.
 
 ## Telemetry Format
 

@@ -10,8 +10,6 @@ dashboard.
 - Receiver: SBUS on GPIO 35.
 - ESC motor output: 50 Hz LEDC PWM.
 - Active telemetry mode: UDP GCS only.
-- WiFi HTTP Telemetry and Bluetooth GCS are kept as archived code, but they
-  are not used in the current firmware.
 - The GCS dashboard is available in the `gcs` folder.
 - Default mDNS hostname: `robjut.local`.
 
@@ -92,15 +90,11 @@ Telemetry mode is configured in `include/Gcs_config.h`.
 The current firmware uses UDP GCS only:
 
 ```cpp
-// System A is kept as archived code and is not used in this version.
-// #define ENABLE_WIFI_HTTP_TELEMETRY 0
-// #define ENABLE_BT_GCS 0
 #define ENABLE_UDP_GCS 1
 ```
 
-The WiFi HTTP Telemetry and Bluetooth GCS blocks are kept as comments/archive
-in the firmware. They are not compiled in the current version. Any future mode
-change still requires rebuilding and uploading the firmware to the ESP32.
+Any future telemetry mode change requires rebuilding and uploading the firmware
+to the ESP32.
 
 ## UDP GCS
 
@@ -123,51 +117,24 @@ python gcs_udp.py
 The dashboard sends `HELLO` to the ESP32. After the ESP32 receives it, telemetry
 data is sent back to the dashboard.
 
-<!--
-## Bluetooth GCS
+## Archived Bluetooth GCS
 
-This section is kept as System A archive. This mode is not used in the current
+Bluetooth GCS is kept as archived System A code. It is not used in the current
 firmware because UDP GCS is the active telemetry mode.
 
-Bluetooth GCS can be used again if the Bluetooth mode is re-enabled:
+The Bluetooth dashboard file, `gcs/gcs.py`, is intentionally commented out.
+To use this mode again, restore the archived Bluetooth firmware/dashboard code,
+enable the Bluetooth mode in `include/Gcs_config.h`, then rebuild and upload the
+firmware.
 
-```cpp
-#define ENABLE_WIFI_HTTP_TELEMETRY 0
-#define ENABLE_BT_GCS 1
-#define ENABLE_UDP_GCS 0
-```
+## Archived WiFi HTTP Telemetry
 
-Run the dashboard:
+WiFi HTTP Telemetry is kept as archived System A code. It is not used in the
+current firmware because UDP GCS is the active telemetry mode.
 
-```powershell
-cd C:\vscode\Advanced-Robotics-Project\gcs
-python gcs.py
-```
-
-Pair Windows with the Bluetooth GCS device, select the COM port, then click
-`Connect`.
-
-## WiFi HTTP Telemetry
-
-This section is kept as System A archive. This mode is not used in the current
-firmware because UDP GCS is the active telemetry mode.
-
-HTTP telemetry can be used again if the mode is re-enabled:
-
-```cpp
-#define ENABLE_WIFI_HTTP_TELEMETRY 1
-#define ENABLE_BT_GCS 0
-#define ENABLE_UDP_GCS 0
-```
-
-After the ESP32 connects to WiFi, open:
-
-```text
-http://robjut.local:8080
-```
-
-If mDNS does not resolve, use the ESP32 IP address from Serial Monitor.
--->
+To use this mode again, restore the archived HTTP telemetry code, enable the
+HTTP telemetry mode in `include/Gcs_config.h`, then rebuild and upload the
+firmware. The previous HTTP telemetry endpoint used port `8080`.
 
 ## PID Tuning
 

@@ -30,11 +30,11 @@ Active telemetry mode:
 
 ```cpp
 // Gcs_config.h
-// System A is kept as archived code and is not used in this version.
-// #define ENABLE_WIFI_HTTP_TELEMETRY 0
-// #define ENABLE_BT_GCS 0
 #define ENABLE_UDP_GCS 1
 ```
+
+The previous WiFi HTTP Telemetry and Bluetooth GCS implementations are archived
+and not used by the current firmware. UDP GCS is the only active telemetry mode.
 
 Default PID values:
 

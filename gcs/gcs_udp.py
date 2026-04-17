@@ -8,7 +8,8 @@ import threading
 import time
 from dataclasses import dataclass
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QPointF, Qt, QTimer
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QApplication,
     QDoubleSpinBox,
@@ -20,6 +21,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QPushButton,
     QPlainTextEdit,
+    QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QTabWidget,
     QVBoxLayout,
@@ -80,6 +83,9 @@ QTabBar::tab {
 QTabBar::tab:selected {
     background: #ffffff;
 }
+QLabel#sectionNote {
+    color: #5f6368;
+}
 """
 
 
@@ -132,6 +138,12 @@ PID_FIELDS = [
     "k_i_yaw",
 ]
 
+PID_AXIS_FIELDS = {
+    "Roll": ["k_roll", "k_roll_rate", "k_i_roll"],
+    "Pitch": ["k_pitch", "k_pitch_rate", "k_i_pitch"],
+    "Yaw": ["k_yaw", "k_yaw_rate", "k_i_yaw"],
+}
+
 DEFAULT_PID_VALUES = {
     "k_roll": 3.99,
     "k_pitch": 3.99,
@@ -165,6 +177,100 @@ def parse_csv_line(line: str) -> dict[str, int | float | str] | None:
 class UdpEvent:
     kind: str
     message: str
+
+
+class AttitudeChart(QWidget):
+    def __init__(self, max_points: int = 180) -> None:
+        super().__init__()
+        self.max_points = max_points
+        self.roll_values: list[float] = []
+        self.pitch_values: list[float] = []
+        self.setMinimumHeight(210)
+
+    def add_sample(self, roll: int | float | str | None, pitch: int | float | str | None) -> None:
+        try:
+            roll_value = float(roll)
+            pitch_value = float(pitch)
+        except (TypeError, ValueError):
+            return
+
+        self.roll_values.append(roll_value)
+        self.pitch_values.append(pitch_value)
+
+        if len(self.roll_values) > self.max_points:
+            self.roll_values = self.roll_values[-self.max_points:]
+            self.pitch_values = self.pitch_values[-self.max_points:]
+
+        self.update()
+
+    def paintEvent(self, event) -> None:  # noqa: N802
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        width = self.width()
+        height = self.height()
+        margin_left = 42
+        margin_right = 14
+        margin_top = 24
+        margin_bottom = 28
+        plot_width = max(1, width - margin_left - margin_right)
+        plot_height = max(1, height - margin_top - margin_bottom)
+        y_min = -45.0
+        y_max = 45.0
+
+        painter.fillRect(self.rect(), QColor("#ffffff"))
+        painter.setPen(QPen(QColor("#d8d8d8"), 1))
+        painter.drawRect(margin_left, margin_top, plot_width, plot_height)
+
+        def map_y(value: float) -> float:
+            value = max(y_min, min(y_max, value))
+            normalized = (value - y_min) / (y_max - y_min)
+            return margin_top + plot_height - (normalized * plot_height)
+
+        def map_x(index: int, count: int) -> float:
+            if count <= 1:
+                return margin_left
+            return margin_left + (index / (count - 1)) * plot_width
+
+        painter.setPen(QPen(QColor("#eeeeee"), 1))
+        for value in (-30, -15, 15, 30):
+            y = map_y(float(value))
+            painter.drawLine(QPointF(margin_left, y), QPointF(margin_left + plot_width, y))
+
+        painter.setPen(QPen(QColor("#9aa0a6"), 1))
+        zero_y = map_y(0.0)
+        painter.drawLine(QPointF(margin_left, zero_y), QPointF(margin_left + plot_width, zero_y))
+
+        painter.setPen(QColor("#5f6368"))
+        for value in (-45, 0, 45):
+            y = map_y(float(value))
+            painter.drawText(4, int(y) + 4, f"{value}")
+        painter.drawText(margin_left, height - 8, "time")
+        painter.drawText(4, 16, "deg")
+
+        if not self.roll_values:
+            painter.setPen(QColor("#5f6368"))
+            painter.drawText(self.rect(), Qt.AlignCenter, "Waiting telemetry")
+            return
+
+        def draw_series(values: list[float], color: str) -> None:
+            painter.setPen(QPen(QColor(color), 2))
+            for index in range(1, len(values)):
+                painter.drawLine(
+                    QPointF(map_x(index - 1, len(values)), map_y(values[index - 1])),
+                    QPointF(map_x(index, len(values)), map_y(values[index])),
+                )
+
+        draw_series(self.roll_values, "#d93025")
+        draw_series(self.pitch_values, "#1a73e8")
+
+        painter.setPen(QColor("#202124"))
+        latest_roll = self.roll_values[-1]
+        latest_pitch = self.pitch_values[-1]
+        painter.drawText(margin_left, 16, f"Roll {latest_roll:.1f}")
+        painter.setPen(QColor("#1a73e8"))
+        painter.drawText(margin_left + 92, 16, f"Pitch {latest_pitch:.1f}")
 
 
 class UdpLink:
@@ -243,7 +349,7 @@ class Dashboard(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Proyek Robotika Lanjut - UDP GCS")
-        self.resize(1180, 760)
+        self.resize(1280, 820)
 
         self.udp_link = UdpLink()
         self.latest_data: dict[str, int | float | str] = {}
@@ -252,6 +358,7 @@ class Dashboard(QMainWindow):
 
         self.value_labels: dict[str, QLabel] = {}
         self.pid_inputs: dict[str, QDoubleSpinBox] = {}
+        self.attitude_chart = AttitudeChart()
 
         self._build_ui()
 
@@ -270,6 +377,8 @@ class Dashboard(QMainWindow):
     def _build_ui(self) -> None:
         root = QWidget()
         layout = QVBoxLayout(root)
+        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(10)
 
         layout.addLayout(self._build_connection_bar())
 
@@ -283,18 +392,22 @@ class Dashboard(QMainWindow):
     def _build_connection_bar(self) -> QHBoxLayout:
         layout = QHBoxLayout()
 
-        self.host_input = QLineEdit("robjut.local")
-        self.host_input.setMinimumWidth(150)
+        self.host_input = QLineEdit("10.250.131.125")
+        self.host_input.setFixedWidth(180)
 
         self.remote_port_input = QSpinBox()
         self.remote_port_input.setRange(1, 65535)
         self.remote_port_input.setValue(4210)
+        self.remote_port_input.setFixedWidth(96)
 
         self.local_port_input = QSpinBox()
         self.local_port_input.setRange(1, 65535)
         self.local_port_input.setValue(4211)
+        self.local_port_input.setFixedWidth(96)
 
         self.status_label = QLabel("Disconnected")
+        self.status_label.setMinimumWidth(130)
+        self.status_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         self.connect_button = QPushButton("Start UDP")
         self.connect_button.clicked.connect(self.toggle_connection)
@@ -319,58 +432,84 @@ class Dashboard(QMainWindow):
         return layout
 
     def _build_main_tab(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+
         tab = QWidget()
+        scroll.setWidget(tab)
+
         layout = QVBoxLayout(tab)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
         top = QHBoxLayout()
-        top.addWidget(self._make_group("Status", ["radio_ok", "failsafe", "arm", "mode"]))
-        top.addWidget(self._make_group("Receiver", ["ch_roll", "ch_pitch", "ch_throttle", "ch_yaw"]))
-        top.addWidget(self._make_group("Motors", ["motor1", "motor2", "motor3", "motor4"]))
+        top.setSpacing(10)
+        top.addWidget(self._make_group("Status", ["radio_ok", "failsafe", "arm", "mode"]), 1)
+        top.addWidget(self._make_group("Receiver", ["ch_roll", "ch_pitch", "ch_throttle", "ch_yaw"]), 1)
+        top.addWidget(self._make_group("Motors", ["motor1", "motor2", "motor3", "motor4"]), 1)
 
         middle = QHBoxLayout()
-        middle.addWidget(self._make_group("Control", ["control1", "control2", "control3", "control4"]))
-        middle.addWidget(self._make_group("IMU", ["roll", "pitch", "yaw", "gx", "gy", "gz", "speed_z"]))
+        middle.setSpacing(10)
+        middle.addWidget(self._build_attitude_chart_group(), 3)
+        middle.addWidget(self._make_group("IMU", ["roll", "pitch", "yaw", "gx", "gy", "gz", "speed_z"]), 2)
 
         layout.addLayout(top)
         layout.addLayout(middle)
         layout.addWidget(self._build_pid_group())
         layout.addLayout(self._build_pid_buttons())
-        layout.addWidget(QLabel("Firmware default blocks PID updates while arm=1. Disarm before sending PID."))
+        note = QLabel("Firmware default blocks PID updates while arm=1. Disarm before sending PID.")
+        note.setObjectName("sectionNote")
+        layout.addWidget(note)
         layout.addStretch()
-        return tab
+        return scroll
 
     def _build_pid_group(self) -> QGroupBox:
         pid_group = QGroupBox("PID input")
-        grid = QGridLayout(pid_group)
+        axis_layout = QHBoxLayout(pid_group)
+        axis_layout.setSpacing(10)
 
-        for row, name in enumerate(PID_FIELDS):
-            spin = QDoubleSpinBox()
-            spin.setDecimals(4)
-            spin.setRange(0.0, 20.0 if "_rate" not in name and "_i_" not in name else 10.0)
-            if "_i_" in name:
-                spin.setRange(0.0, 2.0)
-            spin.setSingleStep(0.05)
-            spin.setValue(DEFAULT_PID_VALUES[name])
-            self.pid_inputs[name] = spin
+        for axis, fields in PID_AXIS_FIELDS.items():
+            axis_group = QGroupBox(axis)
+            axis_grid = QGridLayout(axis_group)
+            axis_grid.setColumnStretch(1, 1)
 
-            send_button = QPushButton("Send")
-            send_button.clicked.connect(lambda checked=False, field=name: self.send_pid(field))
+            for row, name in enumerate(fields):
+                spin = QDoubleSpinBox()
+                spin.setDecimals(4)
+                spin.setRange(0.0, 20.0 if "_rate" not in name and "_i_" not in name else 10.0)
+                if "_i_" in name:
+                    spin.setRange(0.0, 2.0)
+                spin.setSingleStep(0.05)
+                spin.setValue(DEFAULT_PID_VALUES[name])
+                spin.setMinimumWidth(120)
+                spin.setMaximumWidth(170)
+                self.pid_inputs[name] = spin
 
-            grid.addWidget(QLabel(name), row, 0)
-            grid.addWidget(spin, row, 1)
-            grid.addWidget(send_button, row, 2)
+                send_button = QPushButton("Send")
+                send_button.setFixedWidth(78)
+                send_button.clicked.connect(lambda checked=False, field=name: self.send_pid(field))
+
+                axis_grid.addWidget(QLabel(name), row, 0)
+                axis_grid.addWidget(spin, row, 1)
+                axis_grid.addWidget(send_button, row, 2)
+
+            axis_layout.addWidget(axis_group, 1)
 
         return pid_group
 
     def _build_pid_buttons(self) -> QHBoxLayout:
         button_bar = QHBoxLayout()
         send_all_button = QPushButton("Send All PID")
+        send_all_button.setFixedWidth(120)
         send_all_button.clicked.connect(self.send_all_pid)
 
         load_button = QPushButton("Load From Telemetry")
+        load_button.setFixedWidth(150)
         load_button.clicked.connect(self.load_pid_from_telemetry)
 
         request_button = QPushButton("Request PID")
+        request_button.setFixedWidth(110)
         request_button.clicked.connect(lambda: self.send_command("PID"))
 
         button_bar.addWidget(send_all_button)
@@ -378,6 +517,12 @@ class Dashboard(QMainWindow):
         button_bar.addWidget(request_button)
         button_bar.addStretch()
         return button_bar
+
+    def _build_attitude_chart_group(self) -> QGroupBox:
+        group = QGroupBox("Attitude: Roll dan Pitch")
+        layout = QVBoxLayout(group)
+        layout.addWidget(self.attitude_chart)
+        return group
 
     def _build_log_tab(self) -> QWidget:
         tab = QWidget()
@@ -404,10 +549,13 @@ class Dashboard(QMainWindow):
     def _make_group(self, title: str, fields: list[str]) -> QGroupBox:
         group = QGroupBox(title)
         grid = QGridLayout(group)
+        grid.setColumnStretch(1, 1)
 
         for row, field in enumerate(fields):
             label = QLabel("-")
             label.setMinimumWidth(90)
+            label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             self.value_labels[field] = label
             grid.addWidget(QLabel(field), row, 0)
             grid.addWidget(label, row, 1)
@@ -490,6 +638,8 @@ class Dashboard(QMainWindow):
         for field, label in self.value_labels.items():
             value = data.get(field, "-")
             label.setText(str(value))
+
+        self.attitude_chart.add_sample(data.get("roll"), data.get("pitch"))
 
         if not self.pid_loaded_once:
             self.load_pid_from_telemetry()

@@ -151,8 +151,8 @@
         pitch_cmd = (map(ch_p - 1500, min_pitch_corr, max_pitch_corr, min_pitch, max_pitch));
         yaw_cmd = (map(ch_y - 1500, min_yaw_corr, max_yaw_corr, min_yaw, max_yaw));  // 0.08
         u1 = 0.0f;                                                                                  //0.0f;(-gain.k_alt*(alt_target/1.000f) + (-gain.k_z_velocity*(z_velocity)/100.0f))/1000000.0f; //0.0f;
-        u2 = ((-gain.k_roll * (roll + roll_int - (roll_cmd + trim_roll)) / 10000000.0f) + (-gain.k_roll_rate * (gy) / 10000000.0f));
-        u3 = (-gain.k_pitch * ((-pitch) + pitch_int - (pitch_cmd + trim_pitch)) / 10000000.0f) + (-gain.k_pitch_rate * (gx) / 10000000.0f);
+        u2 = ((-gain.k_roll * (roll + roll_int - (roll_cmd + trim_roll)) / 10000000.0f) + (gain.k_roll_rate * (gy) / 10000000.0f));
+        u3 = (-gain.k_pitch * ((pitch) + pitch_int - (pitch_cmd + trim_pitch)) / 10000000.0f) + (gain.k_pitch_rate * (gx) / 10000000.0f);
         u4 = ((-gain.k_yaw * (yaw_setpoint - (yaw_cmd + trim_yaw)) / 10000000.0f) + (-gain.k_yaw_rate * (gz) / 10000000.0f));
         omega2[0] = (A_invers[0][0] * u1 + A_invers[0][1] * u2 + A_invers[0][2] * u3 + A_invers[0][3] * u4);
         omega2[1] = (A_invers[1][0] * u1 + A_invers[1][1] * u2 + A_invers[1][2] * u3 + A_invers[1][3] * u4);

@@ -242,7 +242,7 @@ class UdpLink:
 class Dashboard(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Robjut UDP GCS")
+        self.setWindowTitle("Proyek Robotika Lanjut - UDP GCS")
         self.resize(1180, 760)
 
         self.udp_link = UdpLink()

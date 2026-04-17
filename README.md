@@ -1,8 +1,7 @@
-# Project-Robjut
+# Proyek Robotika Lanjut (Robjut)
 
-Firmware ESP32 untuk quadcopter Robjut, berisi pembacaan SBUS receiver,
-kontrol motor ESC, kontrol attitude, dan telemetry/GCS melalui WiFi atau
-Bluetooth.
+Firmware ESP32 untuk quadcopter pada mata kuliah Proyek Robotika Lanjut.
+Nama **Robjut** dipakai sebagai singkatan dari Robotika Lanjut.
 
 ## Status Singkat
 
@@ -12,11 +11,12 @@ Bluetooth.
 - Motor ESC: output PWM LEDC 50 Hz.
 - Mode telemetry aktif saat ini: UDP GCS.
 - Dashboard GCS tersedia di folder `gcs`.
+- Hostname mDNS default tetap `robjut.local`.
 
 ## Struktur Folder
 
 ```text
-Project-Robjut/
+Proyek-Robotika-Lanjut/
 |-- include/              Header firmware dan konfigurasi utama
 |-- src/                  Entry point firmware ESP32
 |-- gcs/                  Aplikasi dashboard Python
@@ -49,7 +49,9 @@ Layout motor yang dipakai di mixer adalah diagonal/X:
 
 1. Install Visual Studio Code.
 2. Install extension PlatformIO.
-3. Buka folder project:
+3. Buka folder project.
+
+Path lokal yang sedang dipakai saat ini:
 
 ```text
 C:\vscode\Project-Robjut

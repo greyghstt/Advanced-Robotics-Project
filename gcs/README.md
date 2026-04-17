@@ -1,14 +1,15 @@
-# Robjut GCS
+# Proyek Robotika Lanjut GCS
 
 Dashboard Python untuk membaca telemetry ESP32 dan mengirim tuning PID.
 Dashboard dibuat untuk dua jalur komunikasi: Bluetooth Serial dan WiFi UDP.
+Nama Robjut dipakai sebagai singkatan dari Robotika Lanjut.
 
 ## File
 
 | File | Fungsi |
 | --- | --- |
-| `gcs.py` | Dashboard Bluetooth Serial |
-| `gcs_udp.py` | Dashboard WiFi UDP |
+| `gcs.py` | Dashboard Bluetooth Serial Robjut |
+| `gcs_udp.py` | Dashboard WiFi UDP Robjut |
 | `requirements.txt` | Dependency Python dashboard |
 
 ## Dependency

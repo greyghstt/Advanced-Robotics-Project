@@ -1,7 +1,8 @@
 # Include
 
-Folder ini berisi header utama firmware ESP32 Robjut. Sebagian besar logika
-project masih berbentuk header agar mudah dipanggil dari `src/main.cpp`.
+Folder ini berisi header utama firmware ESP32 Proyek Robotika Lanjut
+(Robjut). Sebagian besar logika project masih berbentuk header agar mudah
+dipanggil dari `src/main.cpp`.
 
 ## File Penting
 

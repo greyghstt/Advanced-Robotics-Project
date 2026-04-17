@@ -234,7 +234,7 @@ class SerialLink:
 class Dashboard(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Robjut Bluetooth GCS")
+        self.setWindowTitle("Proyek Robotika Lanjut - Bluetooth GCS")
         self.resize(1180, 760)
 
         self.serial_link = SerialLink()

@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
 
-HardwareSerial SerialSBUS(2); // UART2: RX=GPIO16, TX=GPIO17
+HardwareSerial SerialSBUS(2); // UART2 SBUS, configured in remote_setup().
 
 #define SBUS_PACKET_SIZE 25
 #define SBUS_MIN_RAW 172
@@ -20,6 +20,10 @@ bool signal_lost = true;
 bool radio_failsafe = true;
 bool radio_frame_valid = false;
 uint32_t last_radio_frame_ms = 0;
+uint32_t radio_valid_frame_count = 0;
+uint32_t radio_desync_count = 0;
+uint32_t radio_invalid_frame_count = 0;
+uint32_t radio_last_frame_interval_ms = 0;
 int16_t arm = RADIO_PWM_MIN;
 int16_t ch_roll = RADIO_PWM_MID;
 int16_t ch_pitch = RADIO_PWM_MID;
@@ -88,6 +92,7 @@ void remote_loop() {
   while (SerialSBUS.available() >= SBUS_PACKET_SIZE) {
     // Sinkronisasi SBUS: cari byte awal 0x0F
     if (SerialSBUS.peek() != 0x0F) {
+      radio_desync_count++;
       SerialSBUS.read(); // buang byte tidak valid
       continue;
     }
@@ -122,6 +127,7 @@ void remote_loop() {
     channels[15] = ((sbusData[21] >> 5 | sbusData[22] << 3) & 0x07FF);
 
     if (signal_lost || radio_failsafe) {
+      radio_invalid_frame_count++;
       radio_set_safe_output();
       // Serial print dimatikan agar Serial Monitor tidak spam saat radio invalid.
       // Serial.println("SBUS failsafe/signal lost, motor output forced to minimum");
@@ -137,6 +143,7 @@ void remote_loop() {
     }
 
     if (!control_channels_valid) {
+      radio_invalid_frame_count++;
       radio_set_safe_output();
       // Serial.println("Invalid SBUS control channel, motor output forced to minimum");
       continue;
@@ -160,7 +167,12 @@ void remote_loop() {
 
     arming = arm > RADIO_PWM_MID;
     radio_frame_valid = true;
-    last_radio_frame_ms = millis();
+    uint32_t now_ms = millis();
+    if (last_radio_frame_ms > 0) {
+      radio_last_frame_interval_ms = now_ms - last_radio_frame_ms;
+    }
+    last_radio_frame_ms = now_ms;
+    radio_valid_frame_count++;
     // Serial.print("Roll PWM: "); Serial.println(ch_roll);  
     // Serial.print("Pitch PWM: "); Serial.println(ch_pitch);
     // Serial.print("Throttle PWM: "); Serial.println(ch_throttle);

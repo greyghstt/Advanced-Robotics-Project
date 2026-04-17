@@ -68,6 +68,9 @@ float trim_pitch = 0.0f;
 float trim_yaw = 0.0f;
 float omega2[4];
 float v4_last_correction[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+float roll_out_debug = 0.0f;
+float pitch_out_debug = 0.0f;
+float yaw_out_debug = 0.0f;
 
 struct gains {
     float k_alt = 2.0f;
@@ -129,6 +132,9 @@ void copter_reset_control_state() {
     u2 = 0.0f;
     u3 = 0.0f;
     u4 = 0.0f;
+    roll_out_debug = 0.0f;
+    pitch_out_debug = 0.0f;
+    yaw_out_debug = 0.0f;
     omega2[0] = 0.0f;
     omega2[1] = 0.0f;
     omega2[2] = 0.0f;
@@ -230,6 +236,9 @@ void copter_ControlFSFB(int16_t ch_r, int16_t ch_p, int16_t ch_y, int16_t ch_thr
     u2 = roll_out;
     u3 = pitch_out;
     u4 = yaw_out;
+    roll_out_debug = roll_out;
+    pitch_out_debug = pitch_out;
+    yaw_out_debug = yaw_out;
 
     /*
      * Quad-X direct mixer, assumed motor order:

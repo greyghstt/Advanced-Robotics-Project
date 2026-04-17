@@ -31,6 +31,8 @@ void printUSB() {
     Serial.print(" failsafe:"); Serial.print(radio_failsafe || signal_lost);
     Serial.print(" arm:"); Serial.print(arming);
     Serial.print(" safety:"); Serial.print(flight_safety_reason);
+    Serial.print(" frames:"); Serial.print(radio_valid_frame_count);
+    Serial.print(" desync:"); Serial.print(radio_desync_count);
     Serial.print(" imu:"); Serial.print(imu_ready);
     Serial.print(" cal:"); Serial.print(imu_cal_sys); Serial.print("/");
     Serial.print(imu_cal_gyro); Serial.print("/");

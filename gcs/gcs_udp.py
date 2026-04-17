@@ -212,6 +212,25 @@ CSV_FIELDS = [
     "k_i_roll",
     "k_i_pitch",
     "k_i_yaw",
+    "safety_reason",
+    "motors_started",
+    "imu_ready",
+    "imu_cal_sys",
+    "imu_cal_gyro",
+    "imu_cal_accel",
+    "imu_cal_mag",
+    "imu_samples",
+    "radio_frames",
+    "radio_desync",
+    "radio_invalid",
+    "radio_interval_ms",
+    "control_dt_ms",
+    "roll_cmd",
+    "pitch_cmd",
+    "yaw_cmd",
+    "roll_out",
+    "pitch_out",
+    "yaw_out",
 ]
 
 PID_FIELDS = [
@@ -270,6 +289,25 @@ DISPLAY_LABELS = {
     "failsafe": "Failsafe",
     "arm": "Arm",
     "mode": "Mode",
+    "safety_reason": "Safety",
+    "motors_started": "Motors started",
+    "imu_ready": "IMU ready",
+    "imu_cal_sys": "Cal sys",
+    "imu_cal_gyro": "Cal gyro",
+    "imu_cal_accel": "Cal accel",
+    "imu_cal_mag": "Cal mag",
+    "imu_samples": "IMU samples",
+    "radio_frames": "Radio frames",
+    "radio_desync": "Radio desync",
+    "radio_invalid": "Radio invalid",
+    "radio_interval_ms": "Radio interval",
+    "control_dt_ms": "Control dt",
+    "roll_cmd": "Roll cmd",
+    "pitch_cmd": "Pitch cmd",
+    "yaw_cmd": "Yaw cmd",
+    "roll_out": "Roll out",
+    "pitch_out": "Pitch out",
+    "yaw_out": "Yaw out",
     "ch_roll": "Roll",
     "ch_pitch": "Pitch",
     "ch_throttle": "Throttle",
@@ -301,9 +339,14 @@ def parse_value(value: str) -> int | float | str:
 
 def parse_csv_line(line: str) -> dict[str, int | float | str] | None:
     parts = line.strip().split(",")
-    if not parts or parts[0] != "TEL" or len(parts) != len(CSV_FIELDS):
+    if not parts or parts[0] != "TEL":
         return None
-    return {name: parse_value(value) for name, value in zip(CSV_FIELDS, parts)}
+    if len(parts) > len(CSV_FIELDS):
+        parts = parts[: len(CSV_FIELDS)]
+    data = {name: parse_value(value) for name, value in zip(CSV_FIELDS, parts)}
+    for field in CSV_FIELDS[len(parts) :]:
+        data[field] = ""
+    return data
 
 
 @dataclass
@@ -687,13 +730,13 @@ class Dashboard(QMainWindow):
         top = QHBoxLayout()
         top.setSpacing(8)
         top.addWidget(self._build_status_group(), 1)
-        top.addWidget(self._make_group("Receiver", ["ch_roll", "ch_pitch", "ch_throttle", "ch_yaw"]), 1)
+        top.addWidget(self._make_group("Receiver", ["ch_roll", "ch_pitch", "ch_throttle", "ch_yaw", "radio_interval_ms"]), 1)
         top.addWidget(self._build_compact_motor_group(), 1)
 
         middle = QHBoxLayout()
         middle.setSpacing(8)
         middle.addWidget(self._build_attitude_chart_group(), 3)
-        middle.addWidget(self._make_group("IMU", ["roll", "pitch", "yaw", "gx", "gy", "gz", "speed_z"]), 2)
+        middle.addWidget(self._make_group("IMU", ["roll", "pitch", "yaw", "gx", "gy", "gz", "imu_ready", "imu_cal_sys", "imu_cal_gyro"]), 2)
 
         layout.addLayout(top)
         layout.addLayout(middle)
@@ -713,7 +756,7 @@ class Dashboard(QMainWindow):
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(6)
 
-        for index, field in enumerate(["radio_ok", "failsafe", "arm", "mode"]):
+        for index, field in enumerate(["radio_ok", "failsafe", "arm", "mode", "safety_reason", "motors_started"]):
             chip = QLabel(f"{DISPLAY_LABELS.get(field, field)}\n-")
             chip.setObjectName("statusChip")
             chip.setAlignment(Qt.AlignCenter)
@@ -1170,13 +1213,21 @@ class Dashboard(QMainWindow):
                 "state",
                 "Initial state: "
                 f"arm={data.get('arm', '-')}, mode={data.get('mode', '-')}, "
-                f"failsafe={data.get('failsafe', '-')}, radio_ok={data.get('radio_ok', '-')}",
+                f"failsafe={data.get('failsafe', '-')}, radio_ok={data.get('radio_ok', '-')}, "
+                f"safety={data.get('safety_reason', '-')}",
             )
         tracked_fields = [
             "radio_ok",
             "failsafe",
             "arm",
             "mode",
+            "safety_reason",
+            "motors_started",
+            "imu_ready",
+            "imu_cal_sys",
+            "imu_cal_gyro",
+            "imu_cal_accel",
+            "imu_cal_mag",
             "ch_roll",
             "ch_pitch",
             "ch_throttle",
@@ -1212,12 +1263,19 @@ class Dashboard(QMainWindow):
         failsafe = as_int("failsafe")
         arm = as_int("arm")
         mode = data.get("mode", "-")
+        safety_reason = str(data.get("safety_reason", "-"))
+        motors_started = as_int("motors_started")
+        safety_state = "ok" if safety_reason in ("", "ok", "disarmed", "idle") else "warn"
+        if safety_reason in ("radio", "imu", "tilt", "throttle", "actuator"):
+            safety_state = "error"
 
         status_values = {
             "radio_ok": ("Radio\nOK" if radio_ok == 1 else "Radio\nLost", "ok" if radio_ok == 1 else "error"),
             "failsafe": ("Failsafe\nON" if failsafe == 1 else "Failsafe\nOFF", "error" if failsafe == 1 else "ok"),
             "arm": ("ARMED" if arm == 1 else "DISARMED", "warn" if arm == 1 else "ok"),
             "mode": (f"Mode\n{mode}", "ok"),
+            "safety_reason": (f"Safety\n{safety_reason}", safety_state),
+            "motors_started": ("Motors\nON" if motors_started == 1 else "Motors\nOFF", "warn" if motors_started == 1 else "ok"),
         }
 
         for field, (text, state) in status_values.items():
@@ -1236,6 +1294,10 @@ class Dashboard(QMainWindow):
             alert_state = "error"
         if arm == 1:
             alerts.append("Armed: PID updates are locked")
+        if safety_reason not in ("", "-", "ok", "disarmed", "idle"):
+            alerts.append(f"Safety: {safety_reason}")
+            if safety_state == "error":
+                alert_state = "error"
         if alerts:
             self.alert_label.setText(" | ".join(alerts))
             self._apply_state(self.alert_label, alert_state)
@@ -1357,7 +1419,28 @@ class Dashboard(QMainWindow):
 
         self.event_log_path = self.session_log_dir / "events.csv"
         self.event_log_file = self.event_log_path.open("w", newline="", encoding="utf-8")
-        event_fields = ["pc_time_iso", "kind", "message", "arm", "mode", "failsafe", "radio_ok", "roll", "pitch", "yaw"]
+        event_fields = [
+            "pc_time_iso",
+            "kind",
+            "message",
+            "arm",
+            "mode",
+            "failsafe",
+            "radio_ok",
+            "safety_reason",
+            "motors_started",
+            "roll",
+            "pitch",
+            "yaw",
+            "gx",
+            "gy",
+            "gz",
+            "ch_throttle",
+            "motor1",
+            "motor2",
+            "motor3",
+            "motor4",
+        ]
         self.event_log_writer = csv.DictWriter(self.event_log_file, fieldnames=event_fields)
         self.event_log_writer.writeheader()
 
@@ -1410,9 +1493,19 @@ class Dashboard(QMainWindow):
             "mode": self.latest_data.get("mode", ""),
             "failsafe": self.latest_data.get("failsafe", ""),
             "radio_ok": self.latest_data.get("radio_ok", ""),
+            "safety_reason": self.latest_data.get("safety_reason", ""),
+            "motors_started": self.latest_data.get("motors_started", ""),
             "roll": self.latest_data.get("roll", ""),
             "pitch": self.latest_data.get("pitch", ""),
             "yaw": self.latest_data.get("yaw", ""),
+            "gx": self.latest_data.get("gx", ""),
+            "gy": self.latest_data.get("gy", ""),
+            "gz": self.latest_data.get("gz", ""),
+            "ch_throttle": self.latest_data.get("ch_throttle", ""),
+            "motor1": self.latest_data.get("motor1", ""),
+            "motor2": self.latest_data.get("motor2", ""),
+            "motor3": self.latest_data.get("motor3", ""),
+            "motor4": self.latest_data.get("motor4", ""),
         }
         self.event_log_writer.writerow(row)
         self.event_log_file.flush()

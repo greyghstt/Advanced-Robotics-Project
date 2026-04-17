@@ -9,6 +9,7 @@
 #include "Radio.h"
 #include "Actuator.h"
 #include "ImuSensor.h"
+#include "FlightSafety.h"
 
 WiFiUDP udpGcs;
 bool udp_gcs_wifi_ready = false;
@@ -25,7 +26,11 @@ const char UDP_GCS_CSV_HEADER[] =
     "motor1,motor2,motor3,motor4,"
     "control1,control2,control3,control4,"
     "k_roll,k_pitch,k_yaw,k_roll_rate,k_pitch_rate,k_yaw_rate,"
-    "k_i_roll,k_i_pitch,k_i_yaw";
+    "k_i_roll,k_i_pitch,k_i_yaw,"
+    "safety_reason,motors_started,"
+    "imu_ready,imu_cal_sys,imu_cal_gyro,imu_cal_accel,imu_cal_mag,imu_samples,"
+    "radio_frames,radio_desync,radio_invalid,radio_interval_ms,"
+    "control_dt_ms,roll_cmd,pitch_cmd,yaw_cmd,roll_out,pitch_out,yaw_out";
 
 float udp_gcs_constrain_float(float value, float min_value, float max_value) {
     if (value < min_value) return min_value;
@@ -46,7 +51,7 @@ bool udp_gcs_parse_float(const String &text, float *value) {
 }
 
 String udp_gcs_telemetry_csv() {
-    char buffer[768];
+    char buffer[1280];
 
     snprintf(buffer, sizeof(buffer),
         "TEL,%lu,%d,%d,%d,%d,"
@@ -55,7 +60,11 @@ String udp_gcs_telemetry_csv() {
         "%d,%d,%d,%d,"
         "%d,%d,%d,%d,"
         "%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,"
-        "%.4f,%.4f,%.4f",
+        "%.4f,%.4f,%.4f,"
+        "%s,%d,"
+        "%d,%u,%u,%u,%u,%lu,"
+        "%lu,%lu,%lu,%lu,"
+        "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f",
         millis(),
         radio_frame_valid ? 1 : 0,
         (radio_failsafe || signal_lost) ? 1 : 0,
@@ -88,14 +97,33 @@ String udp_gcs_telemetry_csv() {
         gain.k_yaw_rate,
         gain.k_i_roll,
         gain.k_i_pitch,
-        gain.k_i_yaw
+        gain.k_i_yaw,
+        flight_safety_reason,
+        motors_started ? 1 : 0,
+        imu_ready ? 1 : 0,
+        imu_cal_sys,
+        imu_cal_gyro,
+        imu_cal_accel,
+        imu_cal_mag,
+        (unsigned long)imu_sample_count,
+        (unsigned long)radio_valid_frame_count,
+        (unsigned long)radio_desync_count,
+        (unsigned long)radio_invalid_frame_count,
+        (unsigned long)radio_last_frame_interval_ms,
+        delta_calc_time * 1000.0f,
+        roll_cmd,
+        pitch_cmd,
+        yaw_cmd,
+        roll_out_debug,
+        pitch_out_debug,
+        yaw_out_debug
     );
 
     return String(buffer);
 }
 
 String udp_gcs_telemetry_json() {
-    char buffer[1024];
+    char buffer[1536];
 
     snprintf(buffer, sizeof(buffer),
         "{"
@@ -104,6 +132,8 @@ String udp_gcs_telemetry_json() {
         "\"failsafe\":%d,"
         "\"arm\":%d,"
         "\"mode\":%d,"
+        "\"safety_reason\":\"%s\","
+        "\"motors_started\":%d,"
         "\"roll\":%.2f,"
         "\"pitch\":%.2f,"
         "\"yaw\":%.2f,"
@@ -111,6 +141,16 @@ String udp_gcs_telemetry_json() {
         "\"gy\":%.2f,"
         "\"gz\":%.2f,"
         "\"speed_z\":%.2f,"
+        "\"imu_ready\":%d,"
+        "\"imu_cal_sys\":%u,"
+        "\"imu_cal_gyro\":%u,"
+        "\"imu_cal_accel\":%u,"
+        "\"imu_cal_mag\":%u,"
+        "\"imu_samples\":%lu,"
+        "\"radio_frames\":%lu,"
+        "\"radio_desync\":%lu,"
+        "\"radio_invalid\":%lu,"
+        "\"radio_interval_ms\":%lu,"
         "\"ch_roll\":%d,"
         "\"ch_pitch\":%d,"
         "\"ch_throttle\":%d,"
@@ -123,6 +163,13 @@ String udp_gcs_telemetry_json() {
         "\"control2\":%d,"
         "\"control3\":%d,"
         "\"control4\":%d,"
+        "\"control_dt_ms\":%.2f,"
+        "\"roll_cmd\":%.2f,"
+        "\"pitch_cmd\":%.2f,"
+        "\"yaw_cmd\":%.2f,"
+        "\"roll_out\":%.2f,"
+        "\"pitch_out\":%.2f,"
+        "\"yaw_out\":%.2f,"
         "\"k_roll\":%.4f,"
         "\"k_pitch\":%.4f,"
         "\"k_yaw\":%.4f,"
@@ -138,6 +185,8 @@ String udp_gcs_telemetry_json() {
         (radio_failsafe || signal_lost) ? 1 : 0,
         arming ? 1 : 0,
         mode_now,
+        flight_safety_reason,
+        motors_started ? 1 : 0,
         roll,
         pitch,
         yaw,
@@ -145,6 +194,16 @@ String udp_gcs_telemetry_json() {
         gy,
         gz,
         z_velocity,
+        imu_ready ? 1 : 0,
+        imu_cal_sys,
+        imu_cal_gyro,
+        imu_cal_accel,
+        imu_cal_mag,
+        (unsigned long)imu_sample_count,
+        (unsigned long)radio_valid_frame_count,
+        (unsigned long)radio_desync_count,
+        (unsigned long)radio_invalid_frame_count,
+        (unsigned long)radio_last_frame_interval_ms,
         ch_roll,
         ch_pitch,
         ch_throttle,
@@ -157,6 +216,13 @@ String udp_gcs_telemetry_json() {
         control2,
         control3,
         control4,
+        delta_calc_time * 1000.0f,
+        roll_cmd,
+        pitch_cmd,
+        yaw_cmd,
+        roll_out_debug,
+        pitch_out_debug,
+        yaw_out_debug,
         gain.k_roll,
         gain.k_pitch,
         gain.k_yaw,

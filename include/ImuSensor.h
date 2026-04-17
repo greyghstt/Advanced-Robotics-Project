@@ -7,6 +7,7 @@
 
 static const uint8_t IMU_BNO055_ADDRESS = 0x28;
 static const uint16_t IMU_STARTUP_DELAY_MS = 1000;
+static const float IMU_RAD_TO_DEG = 57.2957795f;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55, IMU_BNO055_ADDRESS);
 
@@ -28,6 +29,7 @@ bool imu_ready = false;
 unsigned long imu_last_update_ms = 0;
 unsigned long previousTime = 0;
 unsigned long currentTime = 0;
+uint32_t imu_sample_count = 0;
 
 float imu_wrap_180(float angle_deg) {
     while (angle_deg > 180.0f) angle_deg -= 360.0f;
@@ -64,9 +66,10 @@ void imu_update() {
     pitch = euler.z();
 
     imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-    gx = gyro.x();
-    gy = gyro.y();
-    gz = gyro.z();
+    // BNO055 gyro vector is rad/s. The V4 rate controller uses deg/s.
+    gx = gyro.x() * IMU_RAD_TO_DEG;
+    gy = gyro.y() * IMU_RAD_TO_DEG;
+    gz = gyro.z() * IMU_RAD_TO_DEG;
 
     if (yaw >= 360.0f) yaw -= 360.0f;
     if (yaw < 0.0f) yaw += 360.0f;
@@ -74,6 +77,7 @@ void imu_update() {
     delta_yaw = imu_wrap_180(yaw - prev_yaw);
     prev_yaw = yaw;
     imu_last_update_ms = currentTime;
+    imu_sample_count++;
 
     bno.getCalibration(&imu_cal_sys, &imu_cal_gyro, &imu_cal_accel, &imu_cal_mag);
 }

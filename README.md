@@ -1,6 +1,7 @@
 # Advanced Robotics Project
 
-ESP32 firmware for a quadcopter developed for the Advanced Robotics course.
+ESP32-based quadcopter flight controller with UDP telemetry and a Python GCS
+dashboard.
 
 ## Current Status
 

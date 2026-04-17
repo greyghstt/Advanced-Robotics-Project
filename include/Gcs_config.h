@@ -7,7 +7,7 @@
 #define ENABLE_UDP_GCS 1
 
 // Dipakai oleh WiFi HTTP telemetry dan UDP GCS.
-#define GCS_WIFI_SSID "GREY"
+#define GCS_WIFI_SSID "grey"
 #define GCS_WIFI_PASSWORD "1234567@"
 #define GCS_MDNS_HOSTNAME "robjut"
 

@@ -35,21 +35,22 @@ void ambil_data_imu() {
     // Serial.println(mag); //sementara utk cek kalibrasi
 
     imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-    roll = euler.x();
-    pitch = euler.y();
-    yaw = euler.z();
+    // BNO055 VECTOR_EULER dibaca dari register H/R/P:
+    // x = heading/yaw, y = roll, z = pitch.
+    yaw = euler.x();
+    roll = euler.y();
+    pitch = euler.z();
 
     imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
     gx = gyro.x();
     gy = gyro.y();
     gz = gyro.z();
 
-    delta_yaw = yaw - prev_yaw;
-
     if(yaw >= 360.0) yaw -= 360.0;
     if(yaw < 0.0) yaw += 360.0;
 
-      prev_yaw = yaw;
+    delta_yaw = yaw - prev_yaw;
+    prev_yaw = yaw;
     // currentTime = millis();
     // dt = (currentTime - previousTime) / 1000.0;
     // previousTime = currentTime;

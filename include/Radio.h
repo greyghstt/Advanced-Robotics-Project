@@ -123,7 +123,8 @@ void remote_loop() {
 
     if (signal_lost || radio_failsafe) {
       radio_set_safe_output();
-      Serial.println("SBUS failsafe/signal lost, motor output forced to minimum");
+      // Serial print dimatikan agar Serial Monitor tidak spam saat radio invalid.
+      // Serial.println("SBUS failsafe/signal lost, motor output forced to minimum");
       continue;
     }
 
@@ -137,7 +138,7 @@ void remote_loop() {
 
     if (!control_channels_valid) {
       radio_set_safe_output();
-      Serial.println("Invalid SBUS control channel, motor output forced to minimum");
+      // Serial.println("Invalid SBUS control channel, motor output forced to minimum");
       continue;
     }
 

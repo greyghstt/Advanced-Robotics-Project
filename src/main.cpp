@@ -7,13 +7,23 @@
 #include <Actuator.h>
 #include <akuisisi.h>
 #include <Transisition.h>
-#include <Copter_control.h>
+#include <Gcs_config.h>
+#if ENABLE_WIFI_HTTP_TELEMETRY
+#include <Telemetry.h>
+#endif
+#if ENABLE_BT_GCS
+#include <BluetoothTelemetry.h>
+#endif
+#if ENABLE_UDP_GCS
+#include <UdpTelemetry.h>
+#endif
+#include <utility/imumaths.h>
 
 #define IMU_time 5
 #define Ultrasonik_time 10
 #define PRINT_time 50
 #define CONTROL_time 5
-#define RADIO_time 10
+#define RADIO_time 2 //10
 
 TaskHandle_t Task_IMU;
 TaskHandle_t Task_Ultrasonik;
@@ -21,33 +31,33 @@ TaskHandle_t Task_Print;
 TaskHandle_t Task_Radio; // Tambahkan handle untuk task radio
 
 void printUSB() {
-  // Read roll, pitch, yaw, and throttle channels
-  // Serial.print("omega2[0]: "); Serial.print(omega2[0]);
-  // Serial.print("omega2[1]: "); Serial.print(omega2[1]);
-  // Serial.print("omega2[2]: "); Serial.print(omega2[2]);
-  // Serial.print("omega2[3]: "); Serial.print(omega2[3]);
-  // Serial.print("Control1: "); Serial.print(control1);
-  // Serial.print("Control2: "); Serial.print(control2);
-  // Serial.print("Control3: "); Serial.print(control3);
-  // Serial.print("Control4: "); Serial.print(control4);
-  // Serial.print("arm: "); Serial.print(arming);
-  Serial.print(" rol: "); Serial.print(roll);
-  Serial.print(" pit: "); Serial.print(pitch);
-  Serial.print(" yw: "); Serial.print(yaw);
-  // Serial.print(" m4_pwm: "); Serial.print(m4_pwm);
-//print pwm motor
-  // Serial.print("arm: "); Serial.print(arming);
-  // Serial.print(" m1_pwm: "); Serial.print(m1_pwm);
-  // Serial.print(" m2_pwm: "); Serial.print(m2_pwm);
-  // Serial.print(" m3_pwm: "); Serial.print(m3_pwm);
-  // Serial.print(" m4_pwm: "); Serial.print(m4_pwm);
-  // Serial.print("ch_mode_backup : "); Serial.print(ch_mode_backup);
-
-  // for (int i = 0; i < 8; i++) {
-  //   Serial.print("CH"); Serial.print(i); Serial.print(": ");
-  //   Serial.print(channels[i]); Serial.print("\t");
-  // }
-
+  Serial.print("radio_ok:"); Serial.print(radio_frame_valid);
+  Serial.print(" failsafe:"); Serial.print(radio_failsafe || signal_lost);
+  Serial.print(" arm:"); Serial.print(arming);
+  Serial.print(" mode:"); Serial.print(mode_now);
+  Serial.print(" act:"); Serial.print(actuator_ready);
+  Serial.print(" esc_test:"); Serial.print(ESC_DIRECT_THROTTLE_TEST);
+  Serial.print(" pwm R/P/T/Y/A:");
+  Serial.print(ch_roll); Serial.print("/");
+  Serial.print(ch_pitch); Serial.print("/");
+  Serial.print(ch_throttle); Serial.print("/");
+  Serial.print(ch_yaw); Serial.print("/");
+  Serial.print(arm);
+  Serial.print(" motor:");
+  Serial.print((int)m1_pwm); Serial.print("/");
+  Serial.print((int)m2_pwm); Serial.print("/");
+  Serial.print((int)m3_pwm); Serial.print("/");
+  Serial.print((int)m4_pwm);
+  Serial.print(" ctrl:");
+  Serial.print(control1); Serial.print("/");
+  Serial.print(control2); Serial.print("/");
+  Serial.print(control3); Serial.print("/");
+  Serial.print(control4);
+  Serial.print(" omega:");
+  Serial.print(omega2[0], 1); Serial.print("/");
+  Serial.print(omega2[1], 1); Serial.print("/");
+  Serial.print(omega2[2], 1); Serial.print("/");
+  Serial.print(omega2[3], 1);
   Serial.println();
 }
 
@@ -90,21 +100,55 @@ void controlThd(void *pvParameters){
 
 void setup() {
   Wire.begin();
-  Serial.begin(9600);
-  Wire.beginTransmission(MPU);
-  Wire.write(0x6B);
-  Wire.write(0);
-  Wire.endTransmission();
+  Serial.begin(115200);
+  // Wire.beginTransmission(MPU);
+  // Wire.write(0x6B);
+  // Wire.write(0);
+  // Wire.endTransmission(); krn pake bno
+  if(!bno.begin()) {
+    Serial.println("BNO055 not detected");
+    while(1);
+  }
+  delay(1000);
+  bno.setExtCrystalUse(true);
+
+  // bno.setMode(OPERATION_MODE_NDOF); // Mode sensor fusion
+
   previousTime = millis(); 
   remote_setup();
   ultrasonic_setup();
   init_actuator();
 
+#if ENABLE_WIFI_HTTP_TELEMETRY
+  telemetry_setup();
+#endif
+
+#if ENABLE_BT_GCS
+  bt_gcs_setup();
+#endif
+
+#if ENABLE_UDP_GCS
+  udp_gcs_setup();
+#endif
+
   xTaskCreate(updateIMU, "IMU", 2048, NULL, 3, &Task_IMU);
-  // xTaskCreate(radio, "Radio", 4096, NULL, 2, &Task_Radio); // Diprioritaskan di level 2
-  // xTaskCreate(updateUltrasonik, "Ultrasonik", 2048, NULL, 3, &Task_Ultrasonik);
-  xTaskCreate(Print_task, "Print", 4096, NULL, 3, &Task_Print);
-  // xTaskCreate(controlThd, "Control", 4096, NULL, 3, NULL);
+  xTaskCreate(radio, "Radio", 4096, NULL, 2, &Task_Radio); // Diprioritaskan di level 2
+  //xTaskCreate(updateUltrasonik, "Ultrasonik", 2048, NULL, 3, &Task_Ultrasonik);
+  // xTaskCreate(Print_task, "Print", 4096, NULL, 3, &Task_Print);
+  xTaskCreate(controlThd, "Control", 4096, NULL, 3, NULL);
+
+#if ENABLE_WIFI_HTTP_TELEMETRY
+  xTaskCreate(telemetryTask, "Telemetry", 4096, NULL, 1, NULL);
+#endif
+
+#if ENABLE_BT_GCS
+  xTaskCreate(btGcsTask, "BTGCS", 4096, NULL, 1, NULL);
+#endif
+
+#if ENABLE_UDP_GCS
+  xTaskCreate(udpGcsTask, "UDPGCS", 4096, NULL, 1, NULL);
+#endif
+
   vTaskStartScheduler(); // Start the scheduler
 }
 

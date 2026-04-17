@@ -7,13 +7,28 @@
 HardwareSerial SerialSBUS(2); // UART2: RX=GPIO16, TX=GPIO17
 
 #define SBUS_PACKET_SIZE 25
+#define SBUS_MIN_RAW 172
+#define SBUS_MAX_RAW 1810
+#define RADIO_PWM_MIN 1000
+#define RADIO_PWM_MID 1500
+#define RADIO_PWM_MAX 2000
 uint8_t sbusData[SBUS_PACKET_SIZE];
 
 int16_t channels[16];
 
-bool signal_lost;
-int16_t arm, ch_roll, ch_pitch, ch_throttle, ch_yaw, ch_mode, ch_mode_backup, ch_vehicle_mode;
-bool arming;
+bool signal_lost = true;
+bool radio_failsafe = true;
+bool radio_frame_valid = false;
+uint32_t last_radio_frame_ms = 0;
+int16_t arm = RADIO_PWM_MIN;
+int16_t ch_roll = RADIO_PWM_MID;
+int16_t ch_pitch = RADIO_PWM_MID;
+int16_t ch_throttle = RADIO_PWM_MIN;
+int16_t ch_yaw = RADIO_PWM_MID;
+int16_t ch_mode = RADIO_PWM_MIN;
+int16_t ch_mode_backup = RADIO_PWM_MIN;
+int16_t ch_vehicle_mode = RADIO_PWM_MIN;
+bool arming = false;
 
 bool alt_hold = false;
 bool mode_fbwa = false;
@@ -28,15 +43,43 @@ bool mode_vtol = false;
 bool mode_safety = false;
 bool mode_vtol_plane = false;
 
-int mode_now, prev_mode;
+int mode_now = 1, prev_mode = 1;
 
 float outputScaler(uint16_t ch) {
   return 0.002 * ch - 3;  // Skala dari 172-1811 jadi ~0-1
 }
 
+bool sbus_channel_valid(int16_t value) {
+  return value >= SBUS_MIN_RAW && value <= SBUS_MAX_RAW;
+}
+
+int16_t sbus_to_pwm(int16_t value, int16_t fallback_pwm) {
+  if (!sbus_channel_valid(value)) {
+    return fallback_pwm;
+  }
+
+  return constrain(map(value, SBUS_MIN_RAW, SBUS_MAX_RAW, RADIO_PWM_MIN, RADIO_PWM_MAX),
+                   RADIO_PWM_MIN, RADIO_PWM_MAX);
+}
+
+void radio_set_safe_output() {
+  ch_roll = RADIO_PWM_MID;
+  ch_pitch = RADIO_PWM_MID;
+  ch_throttle = RADIO_PWM_MIN;
+  ch_yaw = RADIO_PWM_MID;
+  arm = RADIO_PWM_MIN;
+  ch_mode = RADIO_PWM_MIN;
+  ch_mode_backup = RADIO_PWM_MIN;
+  ch_vehicle_mode = RADIO_PWM_MIN;
+  arming = false;
+  mode_now = 1;
+  radio_frame_valid = false;
+}
+
 void remote_setup() {
   Serial.begin(115200);
-  SerialSBUS.begin(100000, SERIAL_8E2, 16, 17); 
+  radio_set_safe_output();
+  SerialSBUS.begin(100000, SERIAL_8E2, 35, 17);
   SerialSBUS.setRxInvert(true);
 }
 
@@ -52,13 +95,13 @@ void remote_loop() {
     SerialSBUS.readBytes(sbusData, SBUS_PACKET_SIZE);
 
     // Periksa flag signal lost dan failsafe di byte akhir SBUS
-    signal_lost = sbusData[23] & 0x04;  // Bit ke-2 (0x04) menunjukkan signal lost
-    bool failsafe = sbusData[23] & 0x08; // Bit ke-3 (0x08) menunjukkan failsafe
+    signal_lost = (sbusData[23] & 0x04) != 0;  // Bit ke-2 (0x04) menunjukkan signal lost
+    radio_failsafe = (sbusData[23] & 0x08) != 0; // Bit ke-3 (0x08) menunjukkan failsafe
 
     // Validasi byte akhir (opsional, bisa disesuaikan)
-    if (sbusData[24] != 0x00) {
-      continue;
-    }
+    // if (sbusData[24] != 0x00) {
+    //   continue;
+    // }
 
     // Decode channel SBUS
     channels[0]  = ((sbusData[1]    | sbusData[2]  << 8) & 0x07FF);
@@ -78,16 +121,24 @@ void remote_loop() {
     channels[14] = ((sbusData[20] >> 2 | sbusData[21] << 6) & 0x07FF);
     channels[15] = ((sbusData[21] >> 5 | sbusData[22] << 3) & 0x07FF);
 
-    bool valid = true;
-    for (int i = 0; i < 16; i++) {
-        if (channels[i] < 172 || channels[i] > 1810) {
-            valid = false;
-            break;
-        }
+    if (signal_lost || radio_failsafe) {
+      radio_set_safe_output();
+      Serial.println("SBUS failsafe/signal lost, motor output forced to minimum");
+      continue;
     }
-    if (!valid) {
-        Serial.println("Invalid SBUS frame, skipping...");
-        return;
+
+    bool control_channels_valid = true;
+    for (int i = 0; i < 4; i++) {
+      if (!sbus_channel_valid(channels[i])) {
+        control_channels_valid = false;
+        break;
+      }
+    }
+
+    if (!control_channels_valid) {
+      radio_set_safe_output();
+      Serial.println("Invalid SBUS control channel, motor output forced to minimum");
+      continue;
     }
 
     // // Peringatan jika data aneh
@@ -96,30 +147,29 @@ void remote_loop() {
     // }
 
     // Konversi ke PWM (1000–2000 µs)
-    ch_roll     = constrain(map(channels[0], 172, 1810, 1000, 2000), 1000, 2000);
-    ch_pitch    = constrain(map(channels[1], 172, 1810, 1000, 2000), 1000, 2000);
-    ch_throttle = constrain(map(channels[2], 172, 1810, 1000, 2000), 1000, 2000);
-    ch_yaw      = constrain(map(channels[3], 172, 1810, 1000, 2000), 1000, 2000);
-    arm         = constrain(map(channels[4], 172, 1810, 1000, 2000), 1000, 2000);
+    ch_roll     = sbus_to_pwm(channels[0], RADIO_PWM_MID);
+    ch_pitch    = sbus_to_pwm(channels[1], RADIO_PWM_MID);
+    ch_throttle = sbus_to_pwm(channels[2], RADIO_PWM_MIN);
+    ch_yaw      = sbus_to_pwm(channels[3], RADIO_PWM_MID);
+    arm         = sbus_to_pwm(channels[4], RADIO_PWM_MIN);
 
-    arming = arm > 1500 ? 1 : 0;
-    signal_lost = signal_lost;
+    ch_mode         = sbus_to_pwm(channels[5], RADIO_PWM_MIN);
+    ch_mode_backup  = sbus_to_pwm(channels[6], RADIO_PWM_MIN);
+    ch_vehicle_mode = sbus_to_pwm(channels[7], RADIO_PWM_MIN);
 
-    ch_mode         = map(channels[5], 172, 1810, 1000, 2000);
-    ch_mode_backup  = map(channels[6], 172, 1810, 1000, 2000);
-    ch_vehicle_mode = map(channels[7], 172, 1810, 1000, 2000);
-
-    arming = arm > 1500 ? 1 : 0;
-    signal_lost = signal_lost; // This line seems redundant and doesn't make sense.
+    arming = arm > RADIO_PWM_MID;
+    radio_frame_valid = true;
+    last_radio_frame_ms = millis();
     // Serial.print("Roll PWM: "); Serial.println(ch_roll);  
     // Serial.print("Pitch PWM: "); Serial.println(ch_pitch);
     // Serial.print("Throttle PWM: "); Serial.println(ch_throttle);
     // Serial.print("Yaw PWM: "); Serial.println(ch_yaw);
     
     // Penentuan mode
-    if (ch_mode <= 1000) {
+    prev_mode = mode_now;
+    if (ch_mode < 1250) {
       mode_now = 1;
-    } else if (ch_mode <= 1512) {
+    } else if (ch_mode < 1750) {
       mode_now = 2;
     } else {
       mode_now = 3;

@@ -14,12 +14,12 @@
 #define min_yaw_corr -512//-517
 
 //fbwastate
-#define max_roll_limit = 30;
-#define min_roll_limit = -30;
-#define max_pitch_limit = 30;
-#define min_pitch_limit = -30;
-#define max_yaw_limit = 20;
-#define min_yaw_limit = -20;
+#define max_roll_limit 30
+#define min_roll_limit -30
+#define max_pitch_limit 30
+#define min_pitch_limit -30
+#define max_yaw_limit 20
+#define min_yaw_limit -20
 
 /** SERVO MAPPING */
 #ifndef THROTTLE_MIN

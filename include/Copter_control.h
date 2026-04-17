@@ -10,11 +10,19 @@
     #include "Control_modes.h"
     // float m1_pwm, m2_pwm, m3_pwm, m4_pwm;
     
-    /// matrix invers A F450
-    const double A_invers[4][4] = {{292600, 2600600, 0, -6283300},
-                                {292600, 0, -2600600, 6283300},
-                                {292600, -2600600, 0, -6283300},
-                                {292600, 0, 2600600, 6283300}};
+    /// Mixer frame diagonal/X.
+    /// Urutan motor diasumsikan:
+    /// M1 = depan-kiri, M2 = depan-kanan, M3 = belakang-kanan, M4 = belakang-kiri.
+    /// Pada frame X setiap motor ikut koreksi roll dan pitch sekaligus.
+    const double MIX_THRUST_COEFF = 292600.0;
+    const double MIX_ROLL_PITCH_COEFF = 1838900.0;  // 2600600 * sin/cos(45 deg)
+    const double MIX_YAW_COEFF = 6283300.0;
+    const double A_invers[4][4] = {
+        {MIX_THRUST_COEFF,  MIX_ROLL_PITCH_COEFF, -MIX_ROLL_PITCH_COEFF, -MIX_YAW_COEFF},
+        {MIX_THRUST_COEFF, -MIX_ROLL_PITCH_COEFF, -MIX_ROLL_PITCH_COEFF,  MIX_YAW_COEFF},
+        {MIX_THRUST_COEFF, -MIX_ROLL_PITCH_COEFF,  MIX_ROLL_PITCH_COEFF, -MIX_YAW_COEFF},
+        {MIX_THRUST_COEFF,  MIX_ROLL_PITCH_COEFF,  MIX_ROLL_PITCH_COEFF,  MIX_YAW_COEFF}
+    };
     // // wahana putri
     // const double A_invers[4][4] = {{-91600, 172800, 172800, 1471600},
     //                                {-91600, 172800, -172800, -1471600},
@@ -22,6 +30,8 @@
     //                                {-91600, -172800, 172800, -1471600}};
 
     // variabel
+    extern float gx, gy, gz;
+    extern float delta_yaw, prev_yaw;
     float u1, u2, u3, u4;
     float w1, w2, w3, w4;
     float roll_int, pitch_int;
@@ -81,8 +91,8 @@
         float k_yaw             = 3.99;   // 2400 2500 //950
         float k_z_vel           = 1.0;     
         float k_roll_rate       = 1.1581; //1.7f;        //3415.75f; 5987.8 6500 4500 4100 3790 3650 3610 3624.8 3628.8
-        float k_pitch_rate      = 1.1581;  //2.9374f; //2.8712f;  //2733.50f;  // 3174.8 3500 2400 2100 1790 1500 1200 1320 1298 1340 1480 1598 1550 2500 3000.8 3700 3580 3690 3250 3080.8 2860 2840 2788 2800
-        float k_yaw_rate        = 1.1581;     // 11 2980
+        float k_pitch_rate      = 1.1581;  //2.9374f; //2.8712f;  //2733.50f;  // 3174.8 3500 2400 2100 1790 1500 1200
+        float k_yaw_rate        = 1.1581;     // 1１ 2980
         float k_i_roll          = 0.0;     //
         float k_i_pitch         = 0.0;   // 0.022
         float k_i_yaw           = 0.0;    // 0.05
@@ -107,7 +117,7 @@
             pitch_int = 0.0;
         }
     }
-    void copter_ControlFSFB(int16_t ch_r, int16_t ch_p, int16_t ch_y, int16_t ch_thr, float roll, float pitch, float yaw, float gy, float gx, float gz) {
+    void copter_ControlFSFB(int16_t ch_r, int16_t ch_p, int16_t ch_y, int16_t ch_thr, float roll, float pitch, float yaw) {
         last_calc_time = calc_time;
         calc_time = micros();
         delta_calc_time = (calc_time - last_calc_time) / 1000000.0;
@@ -140,7 +150,7 @@
         roll_cmd = (map(ch_r - 1500, min_roll_corr, max_roll_corr, min_roll, max_roll));
         pitch_cmd = (map(ch_p - 1500, min_pitch_corr, max_pitch_corr, min_pitch, max_pitch));
         yaw_cmd = (map(ch_y - 1500, min_yaw_corr, max_yaw_corr, min_yaw, max_yaw));  // 0.08
-        u1 = 0.0f;                                                                          //(-gain.k_alt*(alt_target/1.000f) + (-gain.k_z_velocity*(z_velocity)/100.0f))/1000000.0f;
+        u1 = 0.0f;                                                                                  //0.0f;(-gain.k_alt*(alt_target/1.000f) + (-gain.k_z_velocity*(z_velocity)/100.0f))/1000000.0f; //0.0f;
         u2 = ((-gain.k_roll * (roll + roll_int - (roll_cmd + trim_roll)) / 10000000.0f) + (-gain.k_roll_rate * (gy) / 10000000.0f));
         u3 = (-gain.k_pitch * ((-pitch) + pitch_int - (pitch_cmd + trim_pitch)) / 10000000.0f) + (-gain.k_pitch_rate * (gx) / 10000000.0f);
         u4 = ((-gain.k_yaw * (yaw_setpoint - (yaw_cmd + trim_yaw)) / 10000000.0f) + (-gain.k_yaw_rate * (gz) / 10000000.0f));

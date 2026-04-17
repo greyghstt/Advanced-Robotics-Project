@@ -5,6 +5,8 @@
 #define TRIG_PIN 12
 #define ECHO_PIN 13
 
+float altitude = 0.0f;
+
 void ultrasonic_setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
@@ -19,16 +21,14 @@ float read_altitude() {
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
 
-  long duration = pulseIn(ECHO_PIN, HIGH);
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000UL);
   float distance = (duration * 0.034) / 2; // cm
 
   if (distance < 2 || distance > 400) {
     return -1; // Invalid distance
   }
+  altitude = distance;
   return distance;
 }
 
-
-float altitude = read_altitude(); // Initialize altitude variable
 #endif // ULTRASONIK_H
-

@@ -1,174 +1,241 @@
-    #ifndef COPTER_CONTROL_H
-    #define COPTER_CONTROL_H
-    #include <Arduino.h>
+#ifndef COPTER_CONTROL_H
+#define COPTER_CONTROL_H
 
-    #include "akuisisi.h"
-    // #include "Control_Modes.h"
-    #include "Copter_config.h"
-    #include "Radio.h"
-    #include "Ultrasonik.h"
-    #include "Control_modes.h"
-    // float m1_pwm, m2_pwm, m3_pwm, m4_pwm;
-    
-    /// Mixer frame diagonal/X.
-    /// Urutan motor diasumsikan:
-    /// M1 = depan-kiri, M2 = depan-kanan, M3 = belakang-kanan, M4 = belakang-kiri.
-    /// Pada frame X setiap motor ikut koreksi roll dan pitch sekaligus.
-    const double MIX_THRUST_COEFF = 292600.0;
-    const double MIX_ROLL_PITCH_COEFF = 1838900.0;  // 2600600 * sin/cos(45 deg)
-    const double MIX_YAW_COEFF = 6283300.0;
-    // const double A_invers[4][4] = {
-    //     {MIX_THRUST_COEFF,  MIX_ROLL_PITCH_COEFF, -MIX_ROLL_PITCH_COEFF, -MIX_YAW_COEFF},
-    //     {MIX_THRUST_COEFF, -MIX_ROLL_PITCH_COEFF, -MIX_ROLL_PITCH_COEFF,  MIX_YAW_COEFF},
-    //     {MIX_THRUST_COEFF, -MIX_ROLL_PITCH_COEFF,  MIX_ROLL_PITCH_COEFF, -MIX_YAW_COEFF},
-    //     {MIX_THRUST_COEFF,  MIX_ROLL_PITCH_COEFF,  MIX_ROLL_PITCH_COEFF,  MIX_YAW_COEFF}
-    // };
-    /// matrix invers A F450
+#include <Arduino.h>
+#include <math.h>
 
-    // F450 frame konfigurasi x
-const double A_invers[4][4] = {
-  {292600,  1300300,  1300300,  6283300},
-  {292600,  1300300, -1300300, -6283300},
-  {292600, -1300300, -1300300,  6283300},
-  {292600, -1300300,  1300300, -6283300}
+#include "Copter_config.h"
+#include "Radio.h"
+#include "Control_modes.h"
+
+/*
+ * V4 controller concept:
+ * - pilot roll/pitch stick -> target angle
+ * - angle error -> target body rate
+ * - body-rate error + small optional integral -> motor correction in PWM us
+ * - direct Quad-X mixer -> omega2 compatibility output for Actuator.h
+ *
+ * This keeps the old telemetry/dashboard variable names, but removes the old
+ * inverse-matrix scaling so tuning values are easier to reason about.
+ */
+
+static const float V4_MAX_ROLL_ANGLE_DEG = 25.0f;
+static const float V4_MAX_PITCH_ANGLE_DEG = 25.0f;
+static const float V4_MAX_YAW_RATE_DPS = 90.0f;
+static const float V4_RC_DEADBAND_US = 12.0f;
+static const float V4_INTEGRATOR_LIMIT_US = 80.0f;
+static const float V4_AXIS_OUTPUT_LIMIT_US = 260.0f;
+static const float V4_YAW_OUTPUT_LIMIT_US = 160.0f;
+static const float V4_LOW_THROTTLE_RESET_US = 1120.0f;
+static const float V4_TPA_BREAKPOINT_US = 1450.0f;
+static const float V4_TPA_AMOUNT = 0.35f;
+
+/*
+ * Sensor-axis signs. These are intentionally explicit because the BNO055
+ * board orientation may not match the airframe axes.
+ */
+static const float V4_ROLL_ATTITUDE_SIGN = -1.0f;
+static const float V4_PITCH_ATTITUDE_SIGN = 1.0f;
+static const float V4_ROLL_RATE_SIGN = -1.0f;   // roll angle uses -roll, so rate follows -gy
+static const float V4_PITCH_RATE_SIGN = 1.0f;   // pitch angle uses pitch, so rate follows gx
+static const float V4_YAW_RATE_SIGN = 1.0f;
+
+float u1, u2, u3, u4;
+float w1, w2, w3, w4;
+float roll_int, pitch_int, yaw_int;
+unsigned long tnow, tbefore;
+float tdelta;
+unsigned long calc_time, last_calc_time;
+float delta_calc_time;
+float alt_ref, heading_now, last_alt, last_heading, alt_now;
+float alt_target, z_velocity;
+float roll_cmd, pitch_cmd, yaw_cmd;
+float min_roll = -V4_MAX_ROLL_ANGLE_DEG;
+float max_roll = V4_MAX_ROLL_ANGLE_DEG;
+float min_pitch = -V4_MAX_PITCH_ANGLE_DEG;
+float max_pitch = V4_MAX_PITCH_ANGLE_DEG;
+float min_yaw = -V4_MAX_YAW_RATE_DPS;
+float max_yaw = V4_MAX_YAW_RATE_DPS;
+int PID_max_roll = (int)V4_AXIS_OUTPUT_LIMIT_US;
+int PID_max_pitch = (int)V4_AXIS_OUTPUT_LIMIT_US;
+int PID_max_yaw = (int)V4_YAW_OUTPUT_LIMIT_US;
+int PID_min_roll = -(int)V4_AXIS_OUTPUT_LIMIT_US;
+int PID_min_pitch = -(int)V4_AXIS_OUTPUT_LIMIT_US;
+int PID_min_yaw = -(int)V4_YAW_OUTPUT_LIMIT_US;
+float trim_roll = 0.0f;
+float trim_pitch = 0.0f;
+float trim_yaw = 0.0f;
+float omega2[4];
+
+struct gains {
+    float k_alt = 2.0f;
+    float k_z_velocity = 3.0f;
+    float k_roll = 3.5f;       // angle P: deg error -> deg/s target
+    float k_pitch = 3.5f;      // angle P: deg error -> deg/s target
+    float k_yaw = 0.6f;        // yaw stick feed-forward into PWM correction
+    float k_z_vel = 1.0f;
+    float k_roll_rate = 1.0f;  // rate P/damping: deg/s error -> PWM correction
+    float k_pitch_rate = 1.0f; // rate P/damping: deg/s error -> PWM correction
+    float k_yaw_rate = 0.5f;   // yaw-rate damping
+    float k_i_roll = 0.0f;     // keep I off for first V4 tuning pass
+    float k_i_pitch = 0.0f;
+    float k_i_yaw = 0.0f;
+    int16_t roll_rmt;
+    int16_t pitch_rmt;
+    int16_t yaw_rmt;
 };
-    // // wahana putri
-    // const double A_invers[4][4] = {{-91600, 172800, 172800, 1471600},
-    //                                {-91600, 172800, -172800, -1471600},
-    //                                {-91600, -172800, -172800, 1471600},
-    //                                {-91600, -172800, 172800, -1471600}};
+gains gain;
 
-    // variabel
-    // extern float gx, gy, gz;
-    // extern float delta_yaw, prev_yaw;
-    float u1, u2, u3, u4;
-    float w1, w2, w3, w4;
-    float roll_int, pitch_int;
-    unsigned long tnow, tbefore;
-    float tdelta;
-    unsigned long calc_time, last_calc_time;
-    float delta_calc_time;
-    float alt_ref, heading_now, last_alt, last_heading, alt_now;
-    float alt_target, z_velocity;
-    float roll_cmd, pitch_cmd, yaw_cmd;
-    float min_roll = -35.0f;  // 30
-    float max_roll = 35.0f;
-    float min_pitch = -35.0f;  // 25
-    float max_pitch = 35.0f;
-    float min_yaw = -20.0f;
-    float max_yaw = 20.0f;
-    int PID_max_roll = 400;
-    int PID_max_pitch = 400;
-    int PID_max_yaw = 400;
-    int PID_min_roll = -400;
-    int PID_min_pitch = -400;
-    int PID_min_yaw = -400;
-    // float trim_roll = 3.0f;  // 4.8f;//= 2.71;//3.78; //-40 //(+) bales kanan, (-) bales kiri 5 -2
-    // float trim_pitch = 3.5f;  // 10.0f;// 2.40;//2.62; //-30 //25 //22.4 -15.5 -10 -5 // (+) bales maju, (-)bales mundur // 3.5
-    // float trim_yaw = -0.015f;   // 0.006 //(+) bales kanan, (-) bales kiri -0.349 -0.360
-    float trim_roll = 0.0f;  // 4.8f;//= 2.71;//3.78; //-40 //(+) bales kanan, (-) bales kiri 5 -2
-    float trim_pitch = 0.0f;  // 10.0f;// 2.40;//2.62; //-30 //25 //22.4 -15.5 -10 -5 // (+) bales maju, (-)bales mundur // 3.5
-    float trim_yaw = 0.0f;   // 0.006 //(+) bales kanan, (-) bales kiri -0.349 -0.360
-    float omega2[4];
+float v4_clampf(float value, float low, float high) {
+    if (value < low) return low;
+    if (value > high) return high;
+    return value;
+}
 
-    //*Mode
-    // struct gains {
-    //     float k_alt = 2.0f;            // 2
-    //     float k_z_velocity = 3.0f;     // 3
-    //     float k_roll = 238.9f;         // 324 474 474 234 274 ;245 250 246 238 239.9 //238
-    //     float k_pitch = 195.0f;        //182 186 181 179.5 L 180.4 195 200 210
-    //     float k_yaw = 960.0f;         // 2400 2500 //950
-    //     float k_z_vel = 1.0f;          // 1.0
-    //     float k_roll_rate = 5725.8f;   // 5500 5750 5900 5910 5980 82 L 5987 6000 5997 5994
-    //     float k_pitch_rate = 3995.8f;  // 3152* 3159jlek 3154.8 3158.8 L 3174.8 3190 3600 3870 3720 3750 3770 3788 3810 3830 3837
-    //     float k_yaw_rate = 0.0f;      // 11 2980
-    //     float k_i_roll = 0.0f;         //
-    //     float k_i_pitch = 0.022f;      // 0.022
-    //     float k_i_yaw = 0.05f;         // 0.05
-    //     // 15.05: 08.05
-    //     int16_t roll_rmt;
-    //     int16_t pitch_rmt;
-    //     int16_t yaw_rmt;
-    // };
-    // gains gain;
+float v4_rc_normalized(int16_t pwm) {
+    float centered = (float)pwm - 1500.0f;
 
-    struct gains {
-        float k_alt             = 2.0;    
-        float k_z_velocity      = 3.0;     
-        float k_roll            = 3.99;   //241.5f; 324 474 474 234 274 ;245 250 246 238 239.9 //238 241 244.9
-        float k_pitch           = 3.99; // 6 //36.0f;   //175.0f;  334 434 484 223 ;182 188 190 193 //182 186 181 179.5 // 180 185.4 178.4 179.8 180.8 179 177.5 174.7 172.9 170.0 176.9 180 183 181.5
-        float k_yaw             = 3.99;   // 2400 2500 //950
-        float k_z_vel           = 1.0;     
-        float k_roll_rate       = 1.1581; //1.7f;        //3415.75f; 5987.8 6500 4500 4100 3790 3650 3610 3624.8 3628.8
-        float k_pitch_rate      = 1.1581;  //2.9374f; //2.8712f;  //2733.50f;  // 3174.8 3500 2400 2100 1790 1500 1200
-        float k_yaw_rate        = 1.1581;     // 1１ 2980
-        float k_i_roll          = 0.0;     //
-        float k_i_pitch         = 0.0;   // 0.022
-        float k_i_yaw           = 0.0;    // 0.05
-        // 15.05: 08.05
-        int16_t roll_rmt;
-        int16_t pitch_rmt;
-        int16_t yaw_rmt;
-    };
-    gains gain;
+    if (fabsf(centered) <= V4_RC_DEADBAND_US) {
+        return 0.0f;
+    }
 
-    void copter_getIntegral(int16_t ch_thr, float roll, float pitch, float yaw) {
-        tbefore = tnow;
-        tnow = millis();
-        tdelta = (tnow - tbefore) / 1000.0;
-        roll_int += gain.k_i_roll * roll * tdelta;
-        pitch_int += gain.k_i_pitch * pitch * tdelta;
-        roll_int = constrain(roll_int, -15, 15);
-        pitch_int = constrain(pitch_int, -15, 15);
-        // Reset the integrators
-        if (ch_thr < 1100) {
-            roll_int = 0.0;
-            pitch_int = 0.0;
+    if (centered > 0.0f) {
+        centered -= V4_RC_DEADBAND_US;
+        return v4_clampf(centered / (500.0f - V4_RC_DEADBAND_US), 0.0f, 1.0f);
+    }
+
+    centered += V4_RC_DEADBAND_US;
+    return v4_clampf(centered / (500.0f - V4_RC_DEADBAND_US), -1.0f, 0.0f);
+}
+
+float v4_tpa_scale(int16_t ch_thr) {
+    if ((float)ch_thr <= V4_TPA_BREAKPOINT_US) {
+        return 1.0f;
+    }
+
+    float progress = ((float)ch_thr - V4_TPA_BREAKPOINT_US) /
+                     ((float)MAX_THROTTLE_PWM - V4_TPA_BREAKPOINT_US);
+    progress = v4_clampf(progress, 0.0f, 1.0f);
+    return 1.0f - (V4_TPA_AMOUNT * progress);
+}
+
+void copter_reset_control_state() {
+    roll_int = 0.0f;
+    pitch_int = 0.0f;
+    yaw_int = 0.0f;
+    u1 = 0.0f;
+    u2 = 0.0f;
+    u3 = 0.0f;
+    u4 = 0.0f;
+    omega2[0] = 0.0f;
+    omega2[1] = 0.0f;
+    omega2[2] = 0.0f;
+    omega2[3] = 0.0f;
+}
+
+void copter_getIntegral(int16_t ch_thr, float roll_error, float pitch_error, float yaw_rate_error) {
+    if (ch_thr < V4_LOW_THROTTLE_RESET_US) {
+        copter_reset_control_state();
+        return;
+    }
+
+    roll_int += gain.k_i_roll * roll_error * delta_calc_time;
+    pitch_int += gain.k_i_pitch * pitch_error * delta_calc_time;
+    yaw_int += gain.k_i_yaw * yaw_rate_error * delta_calc_time;
+
+    roll_int = v4_clampf(roll_int, -V4_INTEGRATOR_LIMIT_US, V4_INTEGRATOR_LIMIT_US);
+    pitch_int = v4_clampf(pitch_int, -V4_INTEGRATOR_LIMIT_US, V4_INTEGRATOR_LIMIT_US);
+    yaw_int = v4_clampf(yaw_int, -V4_INTEGRATOR_LIMIT_US, V4_INTEGRATOR_LIMIT_US);
+}
+
+void v4_limit_motor_corrections(float correction[4], int16_t ch_thr) {
+    float positive_headroom = (float)MAX_THROTTLE_PWM - (float)ch_thr;
+    float negative_headroom = (float)ch_thr - (float)MIN_THROTTLE_PWM;
+    float scale = 1.0f;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        correction[i] = v4_clampf(correction[i], -V4_AXIS_OUTPUT_LIMIT_US, V4_AXIS_OUTPUT_LIMIT_US);
+
+        if (correction[i] > positive_headroom && correction[i] > 0.0f) {
+            scale = fminf(scale, positive_headroom / correction[i]);
+        } else if (correction[i] < -negative_headroom && correction[i] < 0.0f) {
+            scale = fminf(scale, negative_headroom / -correction[i]);
         }
     }
-    void copter_ControlFSFB(int16_t ch_r, int16_t ch_p, int16_t ch_y, int16_t ch_thr, float roll, float pitch, float yaw, float gx, float gy, float gz) {
-        last_calc_time = calc_time;
-        calc_time = micros();
-        delta_calc_time = (calc_time - last_calc_time) / 1000000.0;
-        heading_now = yaw;
-        // // distance = read_altitude();
-        // alt_ref = read_altitude();
-        // alt_now = read_altitude();
-        // if (alt_hold && mode_fbwa) {
-        //     if (ch_throttle > 1600) {
-        //         alt_setpoint = read_altitude();
-        //         alt_setpoint += (ch_throttle - 1600) / 20000;
-        //     } else if (ch_throttle < 1400) {
-        //         alt_setpoint = read_altitude();
-        //         alt_setpoint -= (ch_throttle - 1400) / 20000;
-        //     } else {
-        //         alt_setpoint = read_altitude();
-        //     }
-        //     alt_target = read_altitude(); - alt_setpoint;
-        //     z_velocity = (alt_now - last_alt) / delta_calc_time;
-        // } else if (mode_fbwa && !alt_hold) {
-        //     alt_target = read_altitude(); - alt_ref;
-        //     z_velocity = (read_altitude() - last_alt) / delta_calc_time;
-        // }
-        // // yaw_setpoint = heading_now - last_heading;
-        yaw_setpoint = delta_yaw;
-        if (yaw_setpoint > 180) yaw_setpoint -= 360;
-        if (yaw_setpoint < -180) yaw_setpoint += 360;
-        copter_getIntegral(ch_thr, roll, pitch, yaw);
 
-        roll_cmd = (map(ch_r - 1500, min_roll_corr, max_roll_corr, min_roll, max_roll));
-        pitch_cmd = (map(ch_p - 1500, min_pitch_corr, max_pitch_corr, min_pitch, max_pitch));
-        yaw_cmd = (map(ch_y - 1500, min_yaw_corr, max_yaw_corr, min_yaw, max_yaw));  // 0.08
-        u1 = 0.0f;                                                                                  //0.0f;(-gain.k_alt*(alt_target/1.000f) + (-gain.k_z_velocity*(z_velocity)/100.0f))/1000000.0f; //0.0f;
-        u2 = ((-gain.k_roll * ((roll) + roll_int - (roll_cmd + trim_roll)) / 10000000.0f) + (-gain.k_roll_rate * (gy) / 10000000.0f));
-        u3 = (-gain.k_pitch * ((-pitch) + pitch_int - (pitch_cmd + trim_pitch)) / 10000000.0f) + (-gain.k_pitch_rate * (gx) / 10000000.0f);
-        u4 = ((-gain.k_yaw * (yaw_setpoint - (yaw_cmd + trim_yaw)) / 10000000.0f) + (-gain.k_yaw_rate * (gz) / 10000000.0f));
-        omega2[0] = (A_invers[0][0] * u1 + A_invers[0][1] * u2 + A_invers[0][2] * u3 + A_invers[0][3] * u4);
-        omega2[1] = (A_invers[1][0] * u1 + A_invers[1][1] * u2 + A_invers[1][2] * u3 + A_invers[1][3] * u4);
-        omega2[2] = (A_invers[2][0] * u1 + A_invers[2][1] * u2 + A_invers[2][2] * u3 + A_invers[2][3] * u4);
-        omega2[3] = (A_invers[3][0] * u1 + A_invers[3][1] * u2 + A_invers[3][2] * u3 + A_invers[3][3] * u4);
-        last_heading = heading_now;
-        
-        // last_alt = alt_setpoint;
+    scale = v4_clampf(scale, 0.0f, 1.0f);
+
+    for (uint8_t i = 0; i < 4; i++) {
+        correction[i] *= scale;
     }
-    #endif
+}
+
+void copter_ControlFSFB(int16_t ch_r, int16_t ch_p, int16_t ch_y, int16_t ch_thr,
+                        float roll, float pitch, float yaw, float gx, float gy, float gz) {
+    last_calc_time = calc_time;
+    calc_time = micros();
+    delta_calc_time = (calc_time - last_calc_time) / 1000000.0f;
+
+    if (last_calc_time == 0 || delta_calc_time <= 0.0f || delta_calc_time > 0.05f) {
+        delta_calc_time = 0.005f;
+    }
+
+    heading_now = yaw;
+    roll_cmd = v4_rc_normalized(ch_r) * V4_MAX_ROLL_ANGLE_DEG;
+    pitch_cmd = v4_rc_normalized(ch_p) * V4_MAX_PITCH_ANGLE_DEG;
+    yaw_cmd = v4_rc_normalized(ch_y) * V4_MAX_YAW_RATE_DPS;
+
+    float roll_angle = (V4_ROLL_ATTITUDE_SIGN * roll);
+    float pitch_angle = (V4_PITCH_ATTITUDE_SIGN * pitch);
+    float roll_rate = (V4_ROLL_RATE_SIGN * gy);
+    float pitch_rate = (V4_PITCH_RATE_SIGN * gx);
+    float yaw_rate = (V4_YAW_RATE_SIGN * gz);
+
+    float roll_error = (roll_cmd + trim_roll) - roll_angle;
+    float pitch_error = (pitch_cmd + trim_pitch) - pitch_angle;
+    float roll_rate_target = gain.k_roll * roll_error;
+    float pitch_rate_target = gain.k_pitch * pitch_error;
+    float roll_rate_error = roll_rate_target - roll_rate;
+    float pitch_rate_error = pitch_rate_target - pitch_rate;
+    float yaw_rate_target = yaw_cmd + trim_yaw;
+    float yaw_rate_error = yaw_rate_target - yaw_rate;
+
+    copter_getIntegral(ch_thr, roll_error, pitch_error, yaw_rate_error);
+
+    float tpa = v4_tpa_scale(ch_thr);
+    float roll_out = ((gain.k_roll_rate * roll_rate_error) + roll_int) * tpa;
+    float pitch_out = ((gain.k_pitch_rate * pitch_rate_error) + pitch_int) * tpa;
+    float yaw_out = ((gain.k_yaw * yaw_rate_target) + (-gain.k_yaw_rate * yaw_rate) + yaw_int) * tpa;
+
+    roll_out = v4_clampf(roll_out, -V4_AXIS_OUTPUT_LIMIT_US, V4_AXIS_OUTPUT_LIMIT_US);
+    pitch_out = v4_clampf(pitch_out, -V4_AXIS_OUTPUT_LIMIT_US, V4_AXIS_OUTPUT_LIMIT_US);
+    yaw_out = v4_clampf(yaw_out, -V4_YAW_OUTPUT_LIMIT_US, V4_YAW_OUTPUT_LIMIT_US);
+
+    u1 = 0.0f;
+    u2 = roll_out;
+    u3 = pitch_out;
+    u4 = yaw_out;
+
+    /*
+     * Quad-X direct mixer, assumed motor order:
+     * M1 front-left, M2 front-right, M3 rear-right, M4 rear-left.
+     * Positive roll_out raises left motors; positive pitch_out raises rear motors.
+     */
+    float correction[4] = {
+        roll_out - pitch_out + yaw_out,
+        -roll_out - pitch_out - yaw_out,
+        -roll_out + pitch_out + yaw_out,
+        roll_out + pitch_out - yaw_out
+    };
+
+    v4_limit_motor_corrections(correction, ch_thr);
+
+    omega2[0] = correction[0] / M_CONST;
+    omega2[1] = correction[1] / M_CONST;
+    omega2[2] = correction[2] / M_CONST;
+    omega2[3] = correction[3] / M_CONST;
+
+    last_heading = heading_now;
+}
+
+#endif

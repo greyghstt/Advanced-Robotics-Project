@@ -33,12 +33,7 @@ int32_t temp_alt = 0;
 #define RADIO_TIMEOUT_MS 150
 
 void stop_motors_safe() {
-    roll_int = 0.0f;
-    pitch_int = 0.0f;
-    omega2[0] = 0.0f;
-    omega2[1] = 0.0f;
-    omega2[2] = 0.0f;
-    omega2[3] = 0.0f;
+    copter_reset_control_state();
     control1 = 0;
     control2 = 0;
     control3 = 0;

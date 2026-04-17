@@ -1,24 +1,24 @@
 # Test
 
-Folder ini disediakan untuk test PlatformIO. Saat ini belum ada test otomatis
-untuk firmware Proyek Robotika Lanjut.
+This folder is reserved for PlatformIO tests. There are currently no automated
+tests for the Advanced Robotics Project firmware.
 
-## Rekomendasi Test Berikutnya
+## Recommended Future Tests
 
-- Test helper mapping SBUS raw ke PWM.
-- Test validasi failsafe radio.
-- Test command parser PID untuk Bluetooth dan UDP GCS.
-- Test batas clamp PID dan trim.
-- Test mixer motor untuk layout diagonal/X.
+- Test SBUS raw-to-PWM helper mapping.
+- Test radio failsafe validation.
+- Test the UDP GCS command parser.
+- Test PID and trim clamp limits.
+- Test the motor mixer for the diagonal/X layout.
 
-## Menjalankan Test
+## Running Tests
 
-Jika test sudah ditambahkan, jalankan:
+After tests are added, run:
 
 ```powershell
 cd C:\vscode\Project-Robjut
 platformio test -e esp32doit-devkit-v1
 ```
 
-Untuk logika yang tidak membutuhkan hardware, lebih baik pisahkan fungsi murni
-agar bisa dites tanpa ESP32.
+For logic that does not require hardware, keep the functions pure where
+possible so they can be tested without the ESP32.

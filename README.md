@@ -1,36 +1,36 @@
-# Proyek Robotika Lanjut (Robjut)
+# Advanced Robotics Project (Robjut)
 
-Firmware ESP32 untuk quadcopter pada mata kuliah Proyek Robotika Lanjut.
-Nama **Robjut** dipakai sebagai singkatan dari Robotika Lanjut.
+ESP32 firmware for a quadcopter developed for the Advanced Robotics course.
+The name **Robjut** is used as a short form of Robotika Lanjut.
 
-## Status Singkat
+## Current Status
 
 - Board: ESP32 DOIT DevKit V1.
-- Framework: Arduino melalui PlatformIO.
-- Receiver: SBUS pada GPIO 35.
-- Motor ESC: output PWM LEDC 50 Hz.
-- Mode telemetry aktif saat ini: UDP GCS.
-- WiFi HTTP Telemetry dan Bluetooth GCS disimpan sebagai arsip, tetapi tidak
-  dipakai pada versi ini.
-- Dashboard GCS tersedia di folder `gcs`.
-- Hostname mDNS default tetap `robjut.local`.
+- Framework: Arduino through PlatformIO.
+- Receiver: SBUS on GPIO 35.
+- ESC motor output: 50 Hz LEDC PWM.
+- Active telemetry mode: UDP GCS only.
+- WiFi HTTP Telemetry and Bluetooth GCS are kept as archived code, but they
+  are not used in the current firmware.
+- The GCS dashboard is available in the `gcs` folder.
+- Default mDNS hostname: `robjut.local`.
 
-## Struktur Folder
+## Folder Structure
 
 ```text
 Proyek-Robotika-Lanjut/
-|-- include/              Header firmware dan konfigurasi utama
-|-- src/                  Entry point firmware ESP32
-|-- gcs/                  Aplikasi dashboard Python
-|-- lib/                  Library lokal atau vendored dependency
-|-- test/                 Area test PlatformIO
-|-- platformio.ini        Konfigurasi build/upload PlatformIO
-`-- README.md            Dokumentasi utama project
+|-- include/              Firmware headers and main configuration
+|-- src/                  ESP32 firmware entry point
+|-- gcs/                  Python dashboard application
+|-- lib/                  Local libraries or vendored dependencies
+|-- test/                 PlatformIO test area
+|-- platformio.ini        PlatformIO build/upload configuration
+`-- README.md             Main project documentation
 ```
 
-## Hardware Utama
+## Main Hardware
 
-| Fungsi | Pin |
+| Function | Pin |
 | --- | --- |
 | SBUS RX | GPIO 35 |
 | Motor 1 | GPIO 33 |
@@ -38,40 +38,40 @@ Proyek-Robotika-Lanjut/
 | Motor 3 | GPIO 26 |
 | Motor 4 | GPIO 27 |
 
-Layout motor yang dipakai di mixer adalah diagonal/X:
+The mixer uses a diagonal/X quadcopter layout:
 
-| Motor | Posisi | Arah putar yang disarankan |
+| Motor | Position | Suggested Rotation |
 | --- | --- | --- |
 | M1 | Front-left | CW |
 | M2 | Front-right | CCW |
 | M3 | Rear-right | CW |
 | M4 | Rear-left | CCW |
 
-## Persiapan
+## Setup
 
 1. Install Visual Studio Code.
-2. Install extension PlatformIO.
-3. Buka folder project.
+2. Install the PlatformIO extension.
+3. Open the project folder.
 
-Path lokal yang sedang dipakai saat ini:
+Current local project path:
 
 ```text
 C:\vscode\Project-Robjut
 ```
 
-4. Pastikan ESP32 terhubung melalui USB.
-5. Build atau upload melalui PlatformIO.
+4. Connect the ESP32 through USB.
+5. Build or upload using PlatformIO.
 
-## Build dan Upload
+## Build and Upload
 
-Dari PlatformIO UI:
+Using the PlatformIO UI:
 
-1. Buka PlatformIO.
-2. Pilih environment `esp32doit-devkit-v1`.
-3. Klik `Build` untuk kompilasi.
-4. Klik `Upload` untuk upload ke ESP32.
+1. Open PlatformIO.
+2. Select the `esp32doit-devkit-v1` environment.
+3. Click `Build` to compile.
+4. Click `Upload` to flash the ESP32.
 
-Dari terminal:
+Using the terminal:
 
 ```powershell
 cd C:\vscode\Project-Robjut
@@ -85,52 +85,51 @@ Serial Monitor:
 platformio device monitor -b 115200
 ```
 
-## Pilihan Mode Telemetry
+## Telemetry Mode
 
-Mode dipilih di `include/Gcs_config.h`.
+Telemetry mode is configured in `include/Gcs_config.h`.
 
-Mode yang dipakai saat ini hanya UDP GCS:
+The current firmware uses UDP GCS only:
 
 ```cpp
-// Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+// System A is kept as archived code and is not used in this version.
 // #define ENABLE_WIFI_HTTP_TELEMETRY 0
 // #define ENABLE_BT_GCS 0
 #define ENABLE_UDP_GCS 1
 ```
 
-Blok kode WiFi HTTP Telemetry dan Bluetooth GCS masih disimpan sebagai
-komentar di firmware agar bisa dilihat ulang, tetapi tidak ikut dikompilasi.
-Jika suatu saat mode diganti lagi, firmware tetap perlu build dan upload ulang
-ke ESP32.
+The WiFi HTTP Telemetry and Bluetooth GCS blocks are kept as comments/archive
+in the firmware. They are not compiled in the current version. Any future mode
+change still requires rebuilding and uploading the firmware to the ESP32.
 
 ## UDP GCS
 
-UDP GCS dipakai untuk dashboard WiFi dengan latency rendah. Alurnya:
+UDP GCS is used for the WiFi dashboard with low latency. Connection flow:
 
-1. Nyalakan hotspot atau WiFi yang sama dengan konfigurasi firmware.
-2. Upload firmware dengan `ENABLE_UDP_GCS 1`.
-3. Buka Serial Monitor dan catat IP ESP32.
-4. Jalankan dashboard:
+1. Turn on the laptop hotspot or connect the laptop and ESP32 to the same WiFi.
+2. Upload the firmware with `ENABLE_UDP_GCS 1`.
+3. Open Serial Monitor and note the ESP32 IP address.
+4. Run the dashboard:
 
 ```powershell
 cd C:\vscode\Project-Robjut\gcs
 python gcs_udp.py
 ```
 
-5. Isi host dengan `robjut.local` atau IP ESP32.
-6. Remote port default adalah `4210`.
-7. Klik `Start UDP`.
+5. Fill the host field with `robjut.local` or the ESP32 IP address.
+6. Keep the default remote port at `4210`.
+7. Click `Start UDP`.
 
-Dashboard akan mengirim `HELLO` ke ESP32. Setelah itu ESP32 mengirim data
-telemetry ke dashboard.
+The dashboard sends `HELLO` to the ESP32. After the ESP32 receives it, telemetry
+data is sent back to the dashboard.
 
 <!--
 ## Bluetooth GCS
 
-Bagian ini disimpan sebagai arsip Sistem A. Mode ini tidak dipakai pada versi
-sekarang karena firmware memakai UDP GCS.
+This section is kept as System A archive. This mode is not used in the current
+firmware because UDP GCS is the active telemetry mode.
 
-Bluetooth GCS dapat dipakai jika mode Bluetooth diaktifkan kembali:
+Bluetooth GCS can be used again if the Bluetooth mode is re-enabled:
 
 ```cpp
 #define ENABLE_WIFI_HTTP_TELEMETRY 0
@@ -138,22 +137,22 @@ Bluetooth GCS dapat dipakai jika mode Bluetooth diaktifkan kembali:
 #define ENABLE_UDP_GCS 0
 ```
 
-Jalankan dashboard:
+Run the dashboard:
 
 ```powershell
 cd C:\vscode\Project-Robjut\gcs
 python gcs.py
 ```
 
-Pair Windows dengan device `Robjut-GCS`, pilih COM port, lalu klik
+Pair Windows with the `Robjut-GCS` device, select the COM port, then click
 `Connect`.
 
 ## WiFi HTTP Telemetry
 
-Bagian ini disimpan sebagai arsip Sistem A. Mode ini tidak dipakai pada versi
-sekarang karena firmware memakai UDP GCS.
+This section is kept as System A archive. This mode is not used in the current
+firmware because UDP GCS is the active telemetry mode.
 
-HTTP telemetry dapat dipakai jika mode ini diaktifkan kembali:
+HTTP telemetry can be used again if the mode is re-enabled:
 
 ```cpp
 #define ENABLE_WIFI_HTTP_TELEMETRY 1
@@ -161,42 +160,35 @@ HTTP telemetry dapat dipakai jika mode ini diaktifkan kembali:
 #define ENABLE_UDP_GCS 0
 ```
 
-Setelah ESP32 terhubung WiFi, buka:
+After the ESP32 connects to WiFi, open:
 
 ```text
 http://robjut.local:8080
 ```
 
-Jika mDNS tidak terbaca, gunakan IP ESP32 dari Serial Monitor.
+If mDNS does not resolve, use the ESP32 IP address from Serial Monitor.
 -->
 
-## Tuning PID
+## PID Tuning
 
-Nilai default PID ada di `include/Copter_control.h`. Dashboard GCS dapat
-membaca nilai PID dan mengirim command tuning.
+Default PID values are defined in `include/Copter_control.h`. The UDP dashboard
+can read the active PID values and send tuning updates through its PID panel.
 
-Secara default update PID saat drone `arm=1` diblokir untuk keamanan. Disarm
-dulu sebelum mengirim nilai PID baru dari dashboard.
+By default, PID updates are blocked while the drone is armed. Disarm the drone
+before sending new PID values from the dashboard.
 
-Contoh command:
+## Safety Notes
 
-```text
-PID
-SET K_PITCH 4.8000
-SET K_PITCH_RATE 1.3500
-```
+- Remove all propellers before upload, motor testing, and early tuning.
+- Make sure the motor position and rotation match the hardware table.
+- Make sure the ESCs are calibrated and share ground with the ESP32.
+- Do not change telemetry mode while the motors are armed.
+- Keep WiFi SSID/password values only in a private repository, or replace them
+  before publishing the project.
 
-## Catatan Keamanan
+## Further Documentation
 
-- Lepas propeller saat upload, test motor, dan tuning awal.
-- Pastikan arah motor dan posisi motor sesuai tabel hardware.
-- Pastikan ESC sudah terkalibrasi dan menerima ground yang sama dengan ESP32.
-- Jangan ubah mode telemetry saat motor sedang armed.
-- Simpan SSID/password WiFi hanya di repo private atau ubah sebelum publish.
-
-## Dokumentasi Lanjutan
-
-- `include/README` menjelaskan fungsi header firmware.
-- `gcs/README.md` menjelaskan dashboard Python.
-- `lib/README` menjelaskan folder library lokal.
-- `test/README` menjelaskan folder test PlatformIO.
+- `include/README` explains the firmware headers.
+- `gcs/README.md` explains the Python dashboard.
+- `lib/README` explains the local library folder.
+- `test/README` explains the PlatformIO test folder.

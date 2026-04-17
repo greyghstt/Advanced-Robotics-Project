@@ -1,50 +1,49 @@
 # Include
 
-Folder ini berisi header utama firmware ESP32 Proyek Robotika Lanjut
-(Robjut). Sebagian besar logika project masih berbentuk header agar mudah
-dipanggil dari `src/main.cpp`.
+This folder contains the main ESP32 firmware headers for the Advanced Robotics
+Project (Robjut). Most project logic is still header-based so it can be called
+directly from `src/main.cpp`.
 
-## File Penting
+## Important Files
 
-| File | Fungsi |
+| File | Purpose |
 | --- | --- |
-| `Actuator.h` | Output PWM ESC melalui LEDC dan mapping pin motor |
-| `Radio.h` | Pembacaan SBUS receiver dan mapping channel remote |
-| `Copter_control.h` | Mixer diagonal/X, gain PID, trim, dan kontrol attitude |
-| `Transisition.h` | Urutan safety, arm/disarm, failsafe, dan loop kontrol |
-| `akuisisi.h` | Pembacaan sensor BNO055 |
-| `Ultrasonik.h` | Pembacaan sensor ultrasonik |
-| `Gcs_config.h` | Pilihan mode telemetry/GCS dan konfigurasi WiFi/UDP |
-| `UdpTelemetry.h` | Telemetry dan command PID melalui UDP |
-| `BluetoothTelemetry.h` | Telemetry dan command PID melalui Bluetooth Serial |
-| `Telemetry.h` | Telemetry HTTP server pada port 8080 |
-| `Kalman.h`, `Kalman.cpp` | Filter Kalman |
-| `Copter_config.h` | Konfigurasi batas sudut dan throttle |
-| `Control_modes.h` | Definisi mode kontrol |
-| `kendali.h` | File kontrol eksperimen/legacy |
-| `filter.h` | Helper filter |
+| `Actuator.h` | ESC PWM output through LEDC and motor pin mapping |
+| `Radio.h` | SBUS receiver reading and remote channel mapping |
+| `Copter_control.h` | Diagonal/X mixer, PID gains, trim, and attitude control |
+| `Transisition.h` | Safety gate, arm/disarm, failsafe, and control loop |
+| `akuisisi.h` | BNO055 sensor reading |
+| `Ultrasonik.h` | Ultrasonic sensor reading |
+| `Gcs_config.h` | Active UDP GCS and WiFi configuration |
+| `UdpTelemetry.h` | Active telemetry and PID command handling through UDP |
+| `BluetoothTelemetry.h` | Archived Bluetooth Serial telemetry/GCS code |
+| `Telemetry.h` | Archived HTTP telemetry server code |
+| `Kalman.h`, `Kalman.cpp` | Kalman filter |
+| `Copter_config.h` | Angle and throttle limit configuration |
+| `Control_modes.h` | Control mode definitions |
+| `kendali.h` | Experimental/legacy control file |
+| `filter.h` | Filter helper |
 
-## Konfigurasi yang Sering Diubah
+## Common Configuration
 
-Mode telemetry:
+Active telemetry mode:
 
 ```cpp
 // Gcs_config.h
-#define ENABLE_WIFI_HTTP_TELEMETRY 0
-#define ENABLE_BT_GCS 0
+// System A is kept as archived code and is not used in this version.
+// #define ENABLE_WIFI_HTTP_TELEMETRY 0
+// #define ENABLE_BT_GCS 0
 #define ENABLE_UDP_GCS 1
 ```
 
-Nilai PID default:
+Default PID values:
 
 ```cpp
 // Copter_control.h
-StateFeedbackGain gain = {
-    ...
-};
+gains gain;
 ```
 
-Pin motor:
+Motor pins:
 
 ```cpp
 // Actuator.h
@@ -54,15 +53,17 @@ Pin motor:
 #define MOTOR_4_PIN 27
 ```
 
-Pin receiver SBUS:
+SBUS receiver pin:
 
 ```cpp
 // Radio.h
 SerialSBUS.begin(100000, SERIAL_8E2, 35, 17);
 ```
 
-## Catatan
+## Notes
 
-- Ubah konfigurasi compile-time lalu upload ulang firmware.
-- Hindari mengubah mapping radio jika receiver sudah terbaca stabil.
-- Untuk tuning awal, lepaskan propeller dan disarm sebelum mengirim PID baru.
+- Change compile-time configuration only when the firmware will be rebuilt and
+  uploaded again.
+- Avoid changing radio mapping if the receiver is already reading reliably.
+- For early tuning, remove the propellers and disarm before sending new PID
+  values.

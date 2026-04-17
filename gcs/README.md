@@ -1,20 +1,19 @@
-# Proyek Robotika Lanjut GCS
+# Advanced Robotics Project GCS
 
-Dashboard Python untuk membaca telemetry ESP32 dan mengirim tuning PID.
-Dashboard dibuat untuk dua jalur komunikasi: Bluetooth Serial dan WiFi UDP.
-Nama Robjut dipakai sebagai singkatan dari Robotika Lanjut.
+Python dashboard for reading ESP32 telemetry and sending PID tuning updates.
+The active dashboard is the WiFi UDP version.
 
-## File
+## Files
 
-| File | Fungsi |
+| File | Purpose |
 | --- | --- |
-| `gcs.py` | Dashboard Bluetooth Serial Robjut |
-| `gcs_udp.py` | Dashboard WiFi UDP Robjut |
-| `requirements.txt` | Dependency Python dashboard |
+| `gcs_udp.py` | Active WiFi UDP dashboard |
+| `gcs.py` | Archived Bluetooth Serial dashboard |
+| `requirements.txt` | Python dashboard dependencies |
 
-## Dependency
+## Dependencies
 
-Gunakan Python yang sudah memiliki PySide6 dan pyserial.
+Use the Python installation that already has PySide6 and pyserial available.
 
 ```powershell
 cd C:\vscode\Project-Robjut\gcs
@@ -23,77 +22,63 @@ python -m pip install -r requirements.txt
 
 ## UDP GCS
 
-UDP adalah mode yang aktif saat ini di firmware. Pastikan konfigurasi firmware
-di `include/Gcs_config.h` seperti ini:
+UDP is the active firmware mode. Make sure `include/Gcs_config.h` keeps UDP
+enabled:
 
 ```cpp
-#define ENABLE_WIFI_HTTP_TELEMETRY 0
-#define ENABLE_BT_GCS 0
+// System A is kept as archived code and is not used in this version.
+// #define ENABLE_WIFI_HTTP_TELEMETRY 0
+// #define ENABLE_BT_GCS 0
 #define ENABLE_UDP_GCS 1
 ```
 
-Jalankan dashboard:
+Run the dashboard:
 
 ```powershell
 cd C:\vscode\Project-Robjut\gcs
 python gcs_udp.py
 ```
 
-Alur koneksi:
+Connection flow:
 
-1. Nyalakan hotspot atau WiFi yang sama dengan ESP32.
-2. Upload firmware ke ESP32.
-3. Buka Serial Monitor untuk melihat IP ESP32.
-4. Jalankan `python gcs_udp.py`.
-5. Isi host dengan `robjut.local` atau IP ESP32.
-6. Remote port default `4210`.
-7. Local port default `4211`.
-8. Klik `Start UDP`.
+1. Turn on the laptop hotspot or connect the laptop and ESP32 to the same WiFi.
+2. Upload the firmware to the ESP32.
+3. Open Serial Monitor and note the ESP32 IP address.
+4. Run `python gcs_udp.py`.
+5. Fill the host field with `robjut.local` or the ESP32 IP address.
+6. Keep the default remote port at `4210`.
+7. Keep the default local port at `4211`.
+8. Click `Start UDP`.
 
-Dashboard akan mengirim `HELLO` ke ESP32. Setelah ESP32 menerima `HELLO`,
-telemetry mulai dikirim ke dashboard.
+The dashboard sends `HELLO` to the ESP32. After the ESP32 receives `HELLO`,
+telemetry starts streaming to the dashboard.
 
+<!--
 ## Bluetooth GCS
 
-Aktifkan mode Bluetooth di `include/Gcs_config.h`:
+This section is kept as System A archive. Bluetooth GCS is not used in the
+current firmware because UDP GCS is the active mode.
 
-```cpp
-#define ENABLE_WIFI_HTTP_TELEMETRY 0
-#define ENABLE_BT_GCS 1
-#define ENABLE_UDP_GCS 0
-```
+To use this mode again, the archived Bluetooth firmware code must be restored
+and the mode must be enabled in `include/Gcs_config.h`.
+-->
 
-Jalankan dashboard:
+## Telemetry Format
 
-```powershell
-cd C:\vscode\Project-Robjut\gcs
-python gcs.py
-```
+The firmware can send telemetry in CSV and JSON format. The dashboard uses:
 
-Alur koneksi:
+- radio, failsafe, arm, and mode status
+- remote PWM inputs
+- motor PWM outputs
+- roll, pitch, and yaw
+- gyro values
+- active PID values
+- trim values
 
-1. Upload firmware ESP32.
-2. Pair Bluetooth Windows dengan device `Robjut-GCS`.
-3. Cek COM port Bluetooth di Device Manager.
-4. Jalankan `python gcs.py`.
-5. Pilih COM port Bluetooth.
-6. Klik `Connect`.
+## Firmware Commands
 
-## Format Telemetry
-
-Firmware dapat mengirim CSV dan JSON. Dashboard memakai data status seperti:
-
-- radio/failsafe/arm/mode
-- input PWM remote
-- output PWM motor
-- roll/pitch/yaw
-- gyro
-- nilai PID aktif
-- trim
-
-## Command Firmware
-
-Command yang didukung:
+The UDP dashboard normally sends commands automatically. The supported protocol
+commands are:
 
 ```text
 HELLO
@@ -102,15 +87,14 @@ HEADER
 GET CSV
 GET JSON
 PID
-SET K_PITCH 4.8000
-SET K_PITCH_RATE 1.3500
-SET TRIM_PITCH -2.0000
+SET <NAME> <VALUE>
 ```
 
-Secara default firmware menolak update PID saat `arm=1`. Disarm dulu sebelum
-mengirim PID dari dashboard.
+Use the dashboard PID fields for tuning instead of manually typing raw command
+values. By default, the firmware rejects PID updates while `arm=1`; disarm the
+drone before sending PID updates.
 
-## Catatan Mode
+## Mode Note
 
-Mode telemetry memakai `#define`, jadi setiap ganti mode perlu build dan upload
-ulang firmware ke ESP32.
+Telemetry mode uses compile-time `#define` values, so changing modes requires
+building and uploading the firmware again.

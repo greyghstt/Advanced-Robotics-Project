@@ -187,7 +187,7 @@ before sending new PID values from the dashboard.
 
 ## Further Documentation
 
-- `include/README` explains the firmware headers.
+- `include/README.md` explains the firmware headers.
 - `gcs/README.md` explains the Python dashboard.
-- `lib/README` explains the local library folder.
-- `test/README` explains the PlatformIO test folder.
+- `lib/README.md` explains the local library folder.
+- `test/README.md` explains the PlatformIO test folder.

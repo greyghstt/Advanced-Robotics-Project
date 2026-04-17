@@ -1,5 +1,9 @@
 #pragma once
 
+// Sistem A - WiFi HTTP Telemetry disimpan sebagai arsip.
+// Mode aktif saat ini adalah UDP GCS, jadi isi file ini tidak dikompilasi.
+#if 0
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
@@ -234,3 +238,5 @@ void telemetryTask(void *pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(TELEMETRY_TASK_PERIOD_MS));
     }
 }
+
+#endif // Sistem A - WiFi HTTP Telemetry archive

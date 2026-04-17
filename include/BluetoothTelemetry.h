@@ -1,5 +1,9 @@
 #pragma once
 
+// Sistem A - Bluetooth GCS disimpan sebagai arsip.
+// Mode aktif saat ini adalah UDP GCS, jadi isi file ini tidak dikompilasi.
+#if 0
+
 #include <Arduino.h>
 #include <BluetoothSerial.h>
 
@@ -336,3 +340,5 @@ void btGcsTask(void *pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(BT_GCS_TASK_PERIOD_MS));
     }
 }
+
+#endif // Sistem A - Bluetooth GCS archive

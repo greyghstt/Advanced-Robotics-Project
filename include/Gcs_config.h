@@ -2,11 +2,12 @@
 
 // Pilih mode GCS/telemetry di sini.
 // Karena ini compile-time config, setiap ganti mode perlu upload ulang ke ESP32.
-#define ENABLE_WIFI_HTTP_TELEMETRY 0
-#define ENABLE_BT_GCS 0
+// Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+// #define ENABLE_WIFI_HTTP_TELEMETRY 0
+// #define ENABLE_BT_GCS 0
 #define ENABLE_UDP_GCS 1
 
-// Dipakai oleh WiFi HTTP telemetry dan UDP GCS.
+// Dipakai oleh UDP GCS.
 #define GCS_WIFI_SSID "grey"
 #define GCS_WIFI_PASSWORD "1234567@"
 #define GCS_MDNS_HOSTNAME "robjut"

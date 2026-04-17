@@ -10,6 +10,8 @@ Nama **Robjut** dipakai sebagai singkatan dari Robotika Lanjut.
 - Receiver: SBUS pada GPIO 35.
 - Motor ESC: output PWM LEDC 50 Hz.
 - Mode telemetry aktif saat ini: UDP GCS.
+- WiFi HTTP Telemetry dan Bluetooth GCS disimpan sebagai arsip, tetapi tidak
+  dipakai pada versi ini.
 - Dashboard GCS tersedia di folder `gcs`.
 - Hostname mDNS default tetap `robjut.local`.
 
@@ -87,15 +89,19 @@ platformio device monitor -b 115200
 
 Mode dipilih di `include/Gcs_config.h`.
 
-Mode UDP GCS aktif saat ini:
+Mode yang dipakai saat ini hanya UDP GCS:
 
 ```cpp
-#define ENABLE_WIFI_HTTP_TELEMETRY 0
-#define ENABLE_BT_GCS 0
+// Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+// #define ENABLE_WIFI_HTTP_TELEMETRY 0
+// #define ENABLE_BT_GCS 0
 #define ENABLE_UDP_GCS 1
 ```
 
-Setiap perubahan mode perlu build dan upload ulang ke ESP32.
+Blok kode WiFi HTTP Telemetry dan Bluetooth GCS masih disimpan sebagai
+komentar di firmware agar bisa dilihat ulang, tetapi tidak ikut dikompilasi.
+Jika suatu saat mode diganti lagi, firmware tetap perlu build dan upload ulang
+ke ESP32.
 
 ## UDP GCS
 
@@ -118,9 +124,13 @@ python gcs_udp.py
 Dashboard akan mengirim `HELLO` ke ESP32. Setelah itu ESP32 mengirim data
 telemetry ke dashboard.
 
+<!--
 ## Bluetooth GCS
 
-Bluetooth GCS dapat dipakai jika mode Bluetooth diaktifkan:
+Bagian ini disimpan sebagai arsip Sistem A. Mode ini tidak dipakai pada versi
+sekarang karena firmware memakai UDP GCS.
+
+Bluetooth GCS dapat dipakai jika mode Bluetooth diaktifkan kembali:
 
 ```cpp
 #define ENABLE_WIFI_HTTP_TELEMETRY 0
@@ -140,7 +150,10 @@ Pair Windows dengan device `Robjut-GCS`, pilih COM port, lalu klik
 
 ## WiFi HTTP Telemetry
 
-HTTP telemetry dapat dipakai jika mode ini diaktifkan:
+Bagian ini disimpan sebagai arsip Sistem A. Mode ini tidak dipakai pada versi
+sekarang karena firmware memakai UDP GCS.
+
+HTTP telemetry dapat dipakai jika mode ini diaktifkan kembali:
 
 ```cpp
 #define ENABLE_WIFI_HTTP_TELEMETRY 1
@@ -155,6 +168,7 @@ http://robjut.local:8080
 ```
 
 Jika mDNS tidak terbaca, gunakan IP ESP32 dari Serial Monitor.
+-->
 
 ## Tuning PID
 

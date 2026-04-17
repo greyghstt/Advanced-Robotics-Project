@@ -8,12 +8,17 @@
 #include <akuisisi.h>
 #include <Transisition.h>
 #include <Gcs_config.h>
-#if ENABLE_WIFI_HTTP_TELEMETRY
-#include <Telemetry.h>
-#endif
-#if ENABLE_BT_GCS
-#include <BluetoothTelemetry.h>
-#endif
+/*
+ * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+ *
+ * #if ENABLE_WIFI_HTTP_TELEMETRY
+ * #include <Telemetry.h>
+ * #endif
+ *
+ * #if ENABLE_BT_GCS
+ * #include <BluetoothTelemetry.h>
+ * #endif
+ */
 #if ENABLE_UDP_GCS
 #include <UdpTelemetry.h>
 #endif
@@ -119,13 +124,17 @@ void setup() {
   ultrasonic_setup();
   init_actuator();
 
-#if ENABLE_WIFI_HTTP_TELEMETRY
-  telemetry_setup();
-#endif
-
-#if ENABLE_BT_GCS
-  bt_gcs_setup();
-#endif
+  /*
+   * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+   *
+   * #if ENABLE_WIFI_HTTP_TELEMETRY
+   *   telemetry_setup();
+   * #endif
+   *
+   * #if ENABLE_BT_GCS
+   *   bt_gcs_setup();
+   * #endif
+   */
 
 #if ENABLE_UDP_GCS
   udp_gcs_setup();
@@ -137,13 +146,17 @@ void setup() {
   // xTaskCreate(Print_task, "Print", 4096, NULL, 3, &Task_Print);
   xTaskCreate(controlThd, "Control", 4096, NULL, 3, NULL);
 
-#if ENABLE_WIFI_HTTP_TELEMETRY
-  xTaskCreate(telemetryTask, "Telemetry", 4096, NULL, 1, NULL);
-#endif
-
-#if ENABLE_BT_GCS
-  xTaskCreate(btGcsTask, "BTGCS", 4096, NULL, 1, NULL);
-#endif
+  /*
+   * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+   *
+   * #if ENABLE_WIFI_HTTP_TELEMETRY
+   *   xTaskCreate(telemetryTask, "Telemetry", 4096, NULL, 1, NULL);
+   * #endif
+   *
+   * #if ENABLE_BT_GCS
+   *   xTaskCreate(btGcsTask, "BTGCS", 4096, NULL, 1, NULL);
+   * #endif
+   */
 
 #if ENABLE_UDP_GCS
   xTaskCreate(udpGcsTask, "UDPGCS", 4096, NULL, 1, NULL);

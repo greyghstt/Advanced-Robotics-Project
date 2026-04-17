@@ -5,10 +5,10 @@
 #include <WiFiUdp.h>
 #include <ESPmDNS.h>
 
-#include "Gcs_config.h"
+#include "GcsConfig.h"
 #include "Radio.h"
 #include "Actuator.h"
-#include "akuisisi.h"
+#include "ImuSensor.h"
 
 WiFiUDP udpGcs;
 bool udp_gcs_wifi_ready = false;

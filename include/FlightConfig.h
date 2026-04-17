@@ -1,0 +1,30 @@
+#pragma once
+
+#define RADIO_ROLL_RANGE 512
+#define RADIO_PITCH_RANGE 512
+#define RADIO_YAW_RANGE 512
+
+#define MAX_ROLL_LIMIT_DEG 30
+#define MIN_ROLL_LIMIT_DEG -30
+#define MAX_PITCH_LIMIT_DEG 30
+#define MIN_PITCH_LIMIT_DEG -30
+#define MAX_YAW_LIMIT_DEG 20
+#define MIN_YAW_LIMIT_DEG -20
+
+#ifndef THROTTLE_MIN
+#define THROTTLE_MIN 0
+#endif
+
+#ifndef THROTTLE_MAX
+#define THROTTLE_MAX 100
+#endif
+
+#ifndef MIN_THROTTLE_PWM
+#define MIN_THROTTLE_PWM 1000
+#endif
+
+#ifndef MAX_THROTTLE_PWM
+#define MAX_THROTTLE_PWM 2000
+#endif
+
+#define M_CONST 1.25f

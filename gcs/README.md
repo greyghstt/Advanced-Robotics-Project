@@ -8,7 +8,6 @@ The active dashboard is the WiFi UDP version.
 | File | Purpose |
 | --- | --- |
 | `gcs_udp.py` | Active WiFi UDP dashboard |
-| `gcs.py` | Commented Bluetooth Serial archive |
 | `requirements.txt` | Python dashboard dependencies |
 
 ## Dependencies
@@ -22,7 +21,7 @@ python -m pip install -r requirements.txt
 
 ## UDP GCS
 
-UDP is the active firmware mode. Make sure `include/Gcs_config.h` keeps UDP
+UDP is the active firmware mode. Make sure `include/GcsConfig.h` keeps UDP
 enabled:
 
 ```cpp
@@ -61,16 +60,6 @@ telemetry starts streaming to the dashboard.
 - Telemetry can be recorded to CSV files under `gcs/logs/`.
 - Motor PWM values are shown as live bars.
 - Roll and pitch are shown on the attitude chart with a `+/-30 deg` limit.
-
-## Archived Bluetooth GCS
-
-Bluetooth GCS is kept as archived System A code. It is not used in the current
-firmware because UDP GCS is the active mode.
-
-The Bluetooth dashboard file, `gcs.py`, is intentionally commented out. To use
-this mode again, restore the archived Bluetooth firmware/dashboard code, enable
-the Bluetooth mode in `include/Gcs_config.h`, then rebuild and upload the
-firmware.
 
 ## Telemetry Format
 

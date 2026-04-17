@@ -4,9 +4,9 @@
 #include <Arduino.h>
 #include <math.h>
 
-#include "Copter_config.h"
+#include "FlightConfig.h"
 #include "Radio.h"
-#include "Control_modes.h"
+#include "ControlModes.h"
 
 /*
  * V4 controller concept:
@@ -29,6 +29,7 @@ static const float V4_YAW_OUTPUT_LIMIT_US = 160.0f;
 static const float V4_LOW_THROTTLE_RESET_US = 1120.0f;
 static const float V4_TPA_BREAKPOINT_US = 1450.0f;
 static const float V4_TPA_AMOUNT = 0.35f;
+static const float V4_OUTPUT_SLEW_LIMIT_US_PER_LOOP = 80.0f;
 
 /*
  * Sensor-axis signs. These are intentionally explicit because the BNO055
@@ -66,6 +67,7 @@ float trim_roll = 0.0f;
 float trim_pitch = 0.0f;
 float trim_yaw = 0.0f;
 float omega2[4];
+float v4_last_correction[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 struct gains {
     float k_alt = 2.0f;
@@ -131,6 +133,10 @@ void copter_reset_control_state() {
     omega2[1] = 0.0f;
     omega2[2] = 0.0f;
     omega2[3] = 0.0f;
+    v4_last_correction[0] = 0.0f;
+    v4_last_correction[1] = 0.0f;
+    v4_last_correction[2] = 0.0f;
+    v4_last_correction[3] = 0.0f;
 }
 
 void copter_getIntegral(int16_t ch_thr, float roll_error, float pitch_error, float yaw_rate_error) {
@@ -167,6 +173,15 @@ void v4_limit_motor_corrections(float correction[4], int16_t ch_thr) {
 
     for (uint8_t i = 0; i < 4; i++) {
         correction[i] *= scale;
+    }
+}
+
+void v4_slew_limit_corrections(float correction[4]) {
+    for (uint8_t i = 0; i < 4; i++) {
+        float delta = correction[i] - v4_last_correction[i];
+        delta = v4_clampf(delta, -V4_OUTPUT_SLEW_LIMIT_US_PER_LOOP, V4_OUTPUT_SLEW_LIMIT_US_PER_LOOP);
+        correction[i] = v4_last_correction[i] + delta;
+        v4_last_correction[i] = correction[i];
     }
 }
 
@@ -229,6 +244,7 @@ void copter_ControlFSFB(int16_t ch_r, int16_t ch_p, int16_t ch_y, int16_t ch_thr
     };
 
     v4_limit_motor_corrections(correction, ch_thr);
+    v4_slew_limit_corrections(correction);
 
     omega2[0] = correction[0] / M_CONST;
     omega2[1] = correction[1] / M_CONST;

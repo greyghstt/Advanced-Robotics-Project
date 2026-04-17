@@ -20,7 +20,7 @@ Advanced-Robotics-Project/
 |-- include/              Firmware headers and main configuration
 |-- src/                  ESP32 firmware entry point
 |-- gcs/                  Python dashboard application
-|-- lib/                  Local libraries or vendored dependencies
+|-- lib/                  Reserved for local libraries
 |-- test/                 PlatformIO test area
 |-- platformio.ini        PlatformIO build/upload configuration
 `-- README.md             Main project documentation
@@ -85,7 +85,7 @@ platformio device monitor -b 115200
 
 ## Telemetry Mode
 
-Telemetry mode is configured in `include/Gcs_config.h`.
+Telemetry mode is configured in `include/GcsConfig.h`.
 
 The current firmware uses UDP GCS only:
 
@@ -117,28 +117,23 @@ python gcs_udp.py
 The dashboard sends `HELLO` to the ESP32. After the ESP32 receives it, telemetry
 data is sent back to the dashboard.
 
-## Archived Bluetooth GCS
+## Version 4 Firmware
 
-Bluetooth GCS is kept as archived System A code. It is not used in the current
-firmware because UDP GCS is the active telemetry mode.
+Version 4 is a clean experimental flight-controller branch. It keeps the same
+ESP32 board, motor pins, SBUS receiver pin, UDP dashboard, and Python GCS, but
+the flight-control layer was rebuilt around a clearer cascaded controller:
 
-The Bluetooth dashboard file, `gcs/gcs.py`, is intentionally commented out.
-To use this mode again, restore the archived Bluetooth firmware/dashboard code,
-enable the Bluetooth mode in `include/Gcs_config.h`, then rebuild and upload the
-firmware.
+```text
+RC stick -> target angle/rate -> PID/rate correction -> Quad-X motor mix
+```
 
-## Archived WiFi HTTP Telemetry
-
-WiFi HTTP Telemetry is kept as archived System A code. It is not used in the
-current firmware because UDP GCS is the active telemetry mode.
-
-To use this mode again, restore the archived HTTP telemetry code, enable the
-HTTP telemetry mode in `include/Gcs_config.h`, then rebuild and upload the
-firmware. The previous HTTP telemetry endpoint used port `8080`.
+The old archived Bluetooth GCS, HTTP telemetry, Kalman helper, and legacy
+experimental control files are not part of this branch. UDP GCS is the only
+active telemetry mode.
 
 ## PID Tuning
 
-Default PID values are defined in `include/Copter_control.h`. The UDP dashboard
+Default PID values are defined in `include/FlightControl.h`. The UDP dashboard
 can read the active PID values and send tuning updates through its PID panel.
 
 By default, PID updates are blocked while the drone is armed. Disarm the drone
@@ -155,7 +150,7 @@ before sending new PID values from the dashboard.
 
 ## Further Documentation
 
-- `include/README.md` explains the firmware headers.
+- `include/README.md` explains the Version 4 firmware headers.
 - `gcs/README.md` explains the Python dashboard.
 - `lib/README.md` explains the local library folder.
 - `test/README.md` explains the PlatformIO test folder.

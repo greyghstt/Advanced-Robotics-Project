@@ -1,170 +1,132 @@
-#include <Wire.h>
 #include <Arduino.h>
-#include <math.h>
-#include <Kalman.h>
+#include <Wire.h>
+
 #include <Radio.h>
-#include <Ultrasonik.h>
+#include <Ultrasonic.h>
 #include <Actuator.h>
-#include <akuisisi.h>
-#include <Transisition.h>
-#include <Gcs_config.h>
-/*
- * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
- *
- * #if ENABLE_WIFI_HTTP_TELEMETRY
- * #include <Telemetry.h>
- * #endif
- *
- * #if ENABLE_BT_GCS
- * #include <BluetoothTelemetry.h>
- * #endif
- */
+#include <ImuSensor.h>
+#include <FlightSafety.h>
+#include <GcsConfig.h>
+
 #if ENABLE_UDP_GCS
 #include <UdpTelemetry.h>
 #endif
-#include <utility/imumaths.h>
 
-#define IMU_time 5
-#define Ultrasonik_time 10
-#define PRINT_time 50
-#define CONTROL_time 5
-#define RADIO_time 2 //10
+static const uint16_t IMU_PERIOD_MS = 5;
+static const uint16_t CONTROL_PERIOD_MS = 5;
+static const uint16_t RADIO_PERIOD_MS = 2;
+static const uint16_t DEBUG_PERIOD_MS = 100;
 
-TaskHandle_t Task_IMU;
-TaskHandle_t Task_Ultrasonik;
-TaskHandle_t Task_Print;
-TaskHandle_t Task_Radio; // Tambahkan handle untuk task radio
+static const BaseType_t CONTROL_CORE = 1;
+static const BaseType_t WIFI_CORE = 0;
+
+TaskHandle_t task_imu = nullptr;
+TaskHandle_t task_radio = nullptr;
+TaskHandle_t task_control = nullptr;
+TaskHandle_t task_udp_gcs = nullptr;
+TaskHandle_t task_debug = nullptr;
 
 void printUSB() {
-  Serial.print("radio_ok:"); Serial.print(radio_frame_valid);
-  Serial.print(" failsafe:"); Serial.print(radio_failsafe || signal_lost);
-  Serial.print(" arm:"); Serial.print(arming);
-  Serial.print(" mode:"); Serial.print(mode_now);
-  Serial.print(" act:"); Serial.print(actuator_ready);
-  Serial.print(" esc_test:"); Serial.print(ESC_DIRECT_THROTTLE_TEST);
-  Serial.print(" pwm R/P/T/Y/A:");
-  Serial.print(ch_roll); Serial.print("/");
-  Serial.print(ch_pitch); Serial.print("/");
-  Serial.print(ch_throttle); Serial.print("/");
-  Serial.print(ch_yaw); Serial.print("/");
-  Serial.print(arm);
-  Serial.print(" motor:");
-  Serial.print((int)m1_pwm); Serial.print("/");
-  Serial.print((int)m2_pwm); Serial.print("/");
-  Serial.print((int)m3_pwm); Serial.print("/");
-  Serial.print((int)m4_pwm);
-  Serial.print(" ctrl:");
-  Serial.print(control1); Serial.print("/");
-  Serial.print(control2); Serial.print("/");
-  Serial.print(control3); Serial.print("/");
-  Serial.print(control4);
-  Serial.print(" omega:");
-  Serial.print(omega2[0], 1); Serial.print("/");
-  Serial.print(omega2[1], 1); Serial.print("/");
-  Serial.print(omega2[2], 1); Serial.print("/");
-  Serial.print(omega2[3], 1);
-  Serial.println();
+    Serial.print("radio_ok:"); Serial.print(radio_frame_valid);
+    Serial.print(" failsafe:"); Serial.print(radio_failsafe || signal_lost);
+    Serial.print(" arm:"); Serial.print(arming);
+    Serial.print(" safety:"); Serial.print(flight_safety_reason);
+    Serial.print(" imu:"); Serial.print(imu_ready);
+    Serial.print(" cal:"); Serial.print(imu_cal_sys); Serial.print("/");
+    Serial.print(imu_cal_gyro); Serial.print("/");
+    Serial.print(imu_cal_accel); Serial.print("/");
+    Serial.print(imu_cal_mag);
+    Serial.print(" mode:"); Serial.print(mode_now);
+    Serial.print(" pwm R/P/T/Y/A:");
+    Serial.print(ch_roll); Serial.print("/");
+    Serial.print(ch_pitch); Serial.print("/");
+    Serial.print(ch_throttle); Serial.print("/");
+    Serial.print(ch_yaw); Serial.print("/");
+    Serial.print(arm);
+    Serial.print(" motor:");
+    Serial.print((int)m1_pwm); Serial.print("/");
+    Serial.print((int)m2_pwm); Serial.print("/");
+    Serial.print((int)m3_pwm); Serial.print("/");
+    Serial.print((int)m4_pwm);
+    Serial.print(" ctrl:");
+    Serial.print(control1); Serial.print("/");
+    Serial.print(control2); Serial.print("/");
+    Serial.print(control3); Serial.print("/");
+    Serial.print(control4);
+    Serial.println();
 }
 
-void updateIMU(void *pvParameters){ 
-  for(;;){
-      ambil_data_imu();
-      vTaskDelay(pdMS_TO_TICKS(IMU_time));
-  }
-};
+void taskImu(void *pvParameters) {
+    (void)pvParameters;
+    TickType_t last_wake = xTaskGetTickCount();
 
-void updateUltrasonik(void *pvParameters){
-  for(;;){
-    read_altitude();
-    vTaskDelay(pdMS_TO_TICKS(Ultrasonik_time));
-  }
-};
+    for (;;) {
+        imu_update();
+        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(IMU_PERIOD_MS));
+    }
+}
 
-void Print_task(void *pvParameters){
-  for(;;){
-      printUSB();
-      vTaskDelay(pdMS_TO_TICKS(PRINT_time));
-  }
-};
+void taskRadio(void *pvParameters) {
+    (void)pvParameters;
+    TickType_t last_wake = xTaskGetTickCount();
 
-void radio(void *pvParameters){
-  for(;;){
-      remote_loop();
-      vTaskDelay(pdMS_TO_TICKS(RADIO_time));
-  }
-};
+    for (;;) {
+        remote_loop();
+        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(RADIO_PERIOD_MS));
+    }
+}
 
-void controlThd(void *pvParameters){
-  for(;;){
-      Transition_sequence_manual();
-      vTaskDelay(pdMS_TO_TICKS(CONTROL_time));
-  }
-};
+void taskControl(void *pvParameters) {
+    (void)pvParameters;
+    TickType_t last_wake = xTaskGetTickCount();
 
+    for (;;) {
+        flight_safety_update();
+        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(CONTROL_PERIOD_MS));
+    }
+}
 
+void taskDebug(void *pvParameters) {
+    (void)pvParameters;
+    TickType_t last_wake = xTaskGetTickCount();
+
+    for (;;) {
+        printUSB();
+        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(DEBUG_PERIOD_MS));
+    }
+}
 
 void setup() {
-  Wire.begin();
-  Serial.begin(115200);
-  // Wire.beginTransmission(MPU);
-  // Wire.write(0x6B);
-  // Wire.write(0);
-  // Wire.endTransmission(); krn pake bno
-  if(!bno.begin()) {
-    Serial.println("BNO055 not detected");
-    while(1);
-  }
-  delay(1000);
-  bno.setExtCrystalUse(true);
+    Serial.begin(115200);
+    Wire.begin();
 
-  // bno.setMode(OPERATION_MODE_NDOF); // Mode sensor fusion
+    if (!imu_setup()) {
+        Serial.println("BNO055 not detected");
+        while (true) {
+            delay(1000);
+        }
+    }
 
-  previousTime = millis(); 
-  remote_setup();
-  ultrasonic_setup();
-  init_actuator();
-
-  /*
-   * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
-   *
-   * #if ENABLE_WIFI_HTTP_TELEMETRY
-   *   telemetry_setup();
-   * #endif
-   *
-   * #if ENABLE_BT_GCS
-   *   bt_gcs_setup();
-   * #endif
-   */
+    remote_setup();
+    ultrasonic_setup();
+    init_actuator();
 
 #if ENABLE_UDP_GCS
-  udp_gcs_setup();
+    udp_gcs_setup();
 #endif
 
-  xTaskCreate(updateIMU, "IMU", 2048, NULL, 3, &Task_IMU);
-  xTaskCreate(radio, "Radio", 4096, NULL, 2, &Task_Radio); // Diprioritaskan di level 2
-  //xTaskCreate(updateUltrasonik, "Ultrasonik", 2048, NULL, 3, &Task_Ultrasonik);
-  // xTaskCreate(Print_task, "Print", 4096, NULL, 3, &Task_Print);
-  xTaskCreate(controlThd, "Control", 4096, NULL, 3, NULL);
-
-  /*
-   * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
-   *
-   * #if ENABLE_WIFI_HTTP_TELEMETRY
-   *   xTaskCreate(telemetryTask, "Telemetry", 4096, NULL, 1, NULL);
-   * #endif
-   *
-   * #if ENABLE_BT_GCS
-   *   xTaskCreate(btGcsTask, "BTGCS", 4096, NULL, 1, NULL);
-   * #endif
-   */
+    xTaskCreatePinnedToCore(taskRadio, "Radio", 4096, nullptr, 5, &task_radio, CONTROL_CORE);
+    xTaskCreatePinnedToCore(taskImu, "IMU", 4096, nullptr, 4, &task_imu, CONTROL_CORE);
+    xTaskCreatePinnedToCore(taskControl, "Control", 4096, nullptr, 4, &task_control, CONTROL_CORE);
 
 #if ENABLE_UDP_GCS
-  xTaskCreate(udpGcsTask, "UDPGCS", 4096, NULL, 1, NULL);
+    xTaskCreatePinnedToCore(udpGcsTask, "UDPGCS", 4096, nullptr, 1, &task_udp_gcs, WIFI_CORE);
 #endif
 
-  vTaskStartScheduler(); // Start the scheduler
+    // Keep disabled by default; UDP dashboard already logs telemetry.
+    // xTaskCreatePinnedToCore(taskDebug, "Debug", 4096, nullptr, 1, &task_debug, WIFI_CORE);
 }
 
 void loop() {
-  // Kosong, semua dikendalikan oleh task
+    vTaskDelay(pdMS_TO_TICKS(1000));
 }

@@ -2,7 +2,7 @@
 #pragma once
 #include <Arduino.h>
 #include "Radio.h"
-#include "Ultrasonik.h"
+#include "Ultrasonic.h"
 
 // bool altitude_hold_mode = false;
 // bool position_hold_mode = false;

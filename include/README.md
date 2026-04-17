@@ -1,49 +1,53 @@
 # Include
 
-This folder contains the main ESP32 firmware headers for the Advanced Robotics
-Project. Most project logic is still header-based so it can be called directly
-from `src/main.cpp`.
+This folder contains the active ESP32 firmware headers for Version 4 of the
+Advanced Robotics Project flight controller.
 
-## Important Files
+Version 4 is intentionally cleaner than the older branches: archived Bluetooth
+GCS, HTTP telemetry, legacy Kalman helpers, and experimental control files were
+removed from this branch. UDP GCS is the only active telemetry path.
+
+## Active Files
 
 | File | Purpose |
 | --- | --- |
-| `Actuator.h` | ESC PWM output through LEDC and motor pin mapping |
-| `Radio.h` | SBUS receiver reading and remote channel mapping |
-| `Copter_control.h` | Diagonal/X mixer, PID gains, trim, and attitude control |
-| `Transisition.h` | Safety gate, arm/disarm, failsafe, and control loop |
-| `akuisisi.h` | BNO055 sensor reading |
-| `Ultrasonik.h` | Ultrasonic sensor reading |
-| `Gcs_config.h` | Active UDP GCS and WiFi configuration |
+| `Actuator.h` | ESC PWM output through ESP32 LEDC and motor pin mapping |
+| `Radio.h` | SBUS receiver reading and channel mapping |
+| `ImuSensor.h` | BNO055 setup, attitude, gyro, calibration, and freshness state |
+| `FlightControl.h` | V4 cascaded attitude/rate controller and Quad-X mixer |
+| `FlightSafety.h` | Arming gate, failsafe, pre-arm checks, and control loop dispatch |
+| `FlightConfig.h` | Shared throttle and flight limits |
+| `ControlModes.h` | Mode placeholders and altitude-hold helper |
+| `GcsConfig.h` | UDP GCS and WiFi configuration |
 | `UdpTelemetry.h` | Active telemetry and PID command handling through UDP |
-| `BluetoothTelemetry.h` | Archived Bluetooth Serial telemetry/GCS code |
-| `Telemetry.h` | Archived HTTP telemetry server code |
-| `Kalman.h`, `Kalman.cpp` | Kalman filter |
-| `Copter_config.h` | Angle and throttle limit configuration |
-| `Control_modes.h` | Control mode definitions |
-| `kendali.h` | Experimental/legacy control file |
-| `filter.h` | Filter helper |
+| `Ultrasonic.h` | Ultrasonic sensor helper kept for future altitude work |
 
-## Common Configuration
+## V4 Control Summary
 
-Active telemetry mode:
+The controller follows a simple multicopter pattern:
+
+```text
+RC stick -> target angle/rate -> PID/rate correction -> Quad-X motor mix
+```
+
+The active loop includes:
+
+- RC deadband near stick center
+- roll/pitch angle-to-rate control
+- gyro-rate damping
+- optional integral with clamp
+- high-throttle P/D attenuation
+- motor correction scaling near PWM limits
+- pre-arm checks before motors are allowed to start
+
+## Active Telemetry Mode
 
 ```cpp
-// Gcs_config.h
+// GcsConfig.h
 #define ENABLE_UDP_GCS 1
 ```
 
-The previous WiFi HTTP Telemetry and Bluetooth GCS implementations are archived
-and not used by the current firmware. UDP GCS is the only active telemetry mode.
-
-Default PID values:
-
-```cpp
-// Copter_control.h
-gains gain;
-```
-
-Motor pins:
+## Motor Pins
 
 ```cpp
 // Actuator.h
@@ -53,17 +57,15 @@ Motor pins:
 #define MOTOR_4_PIN 27
 ```
 
-SBUS receiver pin:
+## SBUS Receiver Pin
 
 ```cpp
 // Radio.h
 SerialSBUS.begin(100000, SERIAL_8E2, 35, 17);
 ```
 
-## Notes
+## Safety Notes
 
-- Change compile-time configuration only when the firmware will be rebuilt and
-  uploaded again.
-- Avoid changing radio mapping if the receiver is already reading reliably.
-- For early tuning, remove the propellers and disarm before sending new PID
-  values.
+- Remove all propellers before upload, motor testing, and early V4 tuning.
+- Validate correction direction before increasing throttle.
+- V4 starts with conservative defaults; tuning is expected.

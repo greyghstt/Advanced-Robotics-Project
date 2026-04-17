@@ -1,37 +1,67 @@
+# Include
 
-This directory is intended for project header files.
+Folder ini berisi header utama firmware ESP32 Robjut. Sebagian besar logika
+project masih berbentuk header agar mudah dipanggil dari `src/main.cpp`.
 
-A header file is a file containing C declarations and macro definitions
-to be shared between several project source files. You request the use of a
-header file in your project source file (C, C++, etc) located in `src` folder
-by including it, with the C preprocessing directive `#include'.
+## File Penting
 
-```src/main.c
+| File | Fungsi |
+| --- | --- |
+| `Actuator.h` | Output PWM ESC melalui LEDC dan mapping pin motor |
+| `Radio.h` | Pembacaan SBUS receiver dan mapping channel remote |
+| `Copter_control.h` | Mixer diagonal/X, gain PID, trim, dan kontrol attitude |
+| `Transisition.h` | Urutan safety, arm/disarm, failsafe, dan loop kontrol |
+| `akuisisi.h` | Pembacaan sensor BNO055 |
+| `Ultrasonik.h` | Pembacaan sensor ultrasonik |
+| `Gcs_config.h` | Pilihan mode telemetry/GCS dan konfigurasi WiFi/UDP |
+| `UdpTelemetry.h` | Telemetry dan command PID melalui UDP |
+| `BluetoothTelemetry.h` | Telemetry dan command PID melalui Bluetooth Serial |
+| `Telemetry.h` | Telemetry HTTP server pada port 8080 |
+| `Kalman.h`, `Kalman.cpp` | Filter Kalman |
+| `Copter_config.h` | Konfigurasi batas sudut dan throttle |
+| `Control_modes.h` | Definisi mode kontrol |
+| `kendali.h` | File kontrol eksperimen/legacy |
+| `filter.h` | Helper filter |
 
-#include "header.h"
+## Konfigurasi yang Sering Diubah
 
-int main (void)
-{
- ...
-}
+Mode telemetry:
+
+```cpp
+// Gcs_config.h
+#define ENABLE_WIFI_HTTP_TELEMETRY 0
+#define ENABLE_BT_GCS 0
+#define ENABLE_UDP_GCS 1
 ```
 
-Including a header file produces the same results as copying the header file
-into each source file that needs it. Such copying would be time-consuming
-and error-prone. With a header file, the related declarations appear
-in only one place. If they need to be changed, they can be changed in one
-place, and programs that include the header file will automatically use the
-new version when next recompiled. The header file eliminates the labor of
-finding and changing all the copies as well as the risk that a failure to
-find one copy will result in inconsistencies within a program.
+Nilai PID default:
 
-In C, the convention is to give header files names that end with `.h'.
+```cpp
+// Copter_control.h
+StateFeedbackGain gain = {
+    ...
+};
+```
 
-Read more about using header files in official GCC documentation:
+Pin motor:
 
-* Include Syntax
-* Include Operation
-* Once-Only Headers
-* Computed Includes
+```cpp
+// Actuator.h
+#define MOTOR_1_PIN 33
+#define MOTOR_2_PIN 25
+#define MOTOR_3_PIN 26
+#define MOTOR_4_PIN 27
+```
 
-https://gcc.gnu.org/onlinedocs/cpp/Header-Files.html
+Pin receiver SBUS:
+
+```cpp
+// Radio.h
+SerialSBUS.begin(100000, SERIAL_8E2, 35, 17);
+```
+
+## Catatan
+
+- Ubah konfigurasi compile-time lalu upload ulang firmware.
+- Hindari mengubah mapping radio jika receiver sudah terbaca stabil.
+- Untuk tuning awal, lepaskan propeller dan disarm sebelum mengirim PID baru.

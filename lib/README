@@ -1,46 +1,31 @@
+# Lib
 
-This directory is intended for project specific (private) libraries.
-PlatformIO will compile them to static libraries and link into the executable file.
+Folder ini disediakan untuk library lokal project. PlatformIO akan
+mengompilasi library yang ditempatkan di sini dan menautkannya ke firmware.
 
-The source code of each library should be placed in a separate directory
-("lib/your_library_name/[Code]").
+## Isi Saat Ini
 
-For example, see the structure of the following example libraries `Foo` and `Bar`:
+Saat ini folder ini berisi vendored dependency:
 
-|--lib
-|  |
-|  |--Bar
-|  |  |--docs
-|  |  |--examples
-|  |  |--src
-|  |     |- Bar.c
-|  |     |- Bar.h
-|  |  |- library.json (optional. for custom build options, etc) https://docs.platformio.org/page/librarymanager/config.html
-|  |
-|  |--Foo
-|  |  |- Foo.c
-|  |  |- Foo.h
-|  |
-|  |- README --> THIS FILE
-|
-|- platformio.ini
-|--src
-   |- main.c
-
-Example contents of `src/main.c` using Foo and Bar:
-```
-#include <Foo.h>
-#include <Bar.h>
-
-int main (void)
-{
-  ...
-}
-
+```text
+freertos-teensy-11.0.1_v1/
 ```
 
-The PlatformIO Library Dependency Finder will find automatically dependent
-libraries by scanning project source files.
+README di dalam folder dependency tersebut adalah dokumentasi bawaan library
+dan tidak perlu diubah untuk dokumentasi project Robjut.
 
-More information about PlatformIO Library Dependency Finder
-- https://docs.platformio.org/page/librarymanager/ldf.html
+## Menambah Library Lokal
+
+Jika nanti ada library khusus project, letakkan dalam struktur seperti ini:
+
+```text
+lib/
+`-- NamaLibrary/
+    |-- src/
+    |   |-- NamaLibrary.cpp
+    |   `-- NamaLibrary.h
+    `-- library.json
+```
+
+Library yang berasal dari PlatformIO Registry sebaiknya tetap dimasukkan ke
+`platformio.ini` bagian `lib_deps`, bukan disalin manual ke folder ini.

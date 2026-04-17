@@ -1,11 +1,24 @@
+# Test
 
-This directory is intended for PlatformIO Test Runner and project tests.
+Folder ini disediakan untuk test PlatformIO. Saat ini belum ada test otomatis
+untuk firmware Robjut.
 
-Unit Testing is a software testing method by which individual units of
-source code, sets of one or more MCU program modules together with associated
-control data, usage procedures, and operating procedures, are tested to
-determine whether they are fit for use. Unit testing finds problems early
-in the development cycle.
+## Rekomendasi Test Berikutnya
 
-More information about PlatformIO Unit Testing:
-- https://docs.platformio.org/en/latest/advanced/unit-testing/index.html
+- Test helper mapping SBUS raw ke PWM.
+- Test validasi failsafe radio.
+- Test command parser PID untuk Bluetooth dan UDP GCS.
+- Test batas clamp PID dan trim.
+- Test mixer motor untuk layout diagonal/X.
+
+## Menjalankan Test
+
+Jika test sudah ditambahkan, jalankan:
+
+```powershell
+cd C:\vscode\Project-Robjut
+platformio test -e esp32doit-devkit-v1
+```
+
+Untuk logika yang tidak membutuhkan hardware, lebih baik pisahkan fungsi murni
+agar bisa dites tanpa ESP32.

@@ -49,6 +49,15 @@ void ambil_data_imu() {
     if(yaw >= 360.0) yaw -= 360.0;
     if(yaw < 0.0) yaw += 360.0;
 
+    // TODO(yaw stability, untested): wrap delta_yaw here before it is used by yaw control.
+    // The current V1 yaw loop still wraps yaw_setpoint in Copter_control.h, but wrapping at
+    // the source would avoid a possible yaw jump when heading crosses 0/360 degrees.
+    //
+    // Proposed change:
+    // delta_yaw = yaw - prev_yaw;
+    // if (delta_yaw > 180.0f) delta_yaw -= 360.0f;
+    // if (delta_yaw < -180.0f) delta_yaw += 360.0f;
+    // prev_yaw = yaw;
     delta_yaw = yaw - prev_yaw;
     prev_yaw = yaw;
     // currentTime = millis();

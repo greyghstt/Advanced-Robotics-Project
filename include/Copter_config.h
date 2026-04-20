@@ -37,7 +37,16 @@
 
 #define M_CONST 1.25
 
-#define MOTOR_1 33 //roll kiri
-#define MOTOR_2 25 //pitch depan
-#define MOTOR_3 26 //roll kanan
-#define MOTOR_4 27 //pitch belakang
+// Motor layout X/diagonal, dilihat dari atas:
+// M1 GPIO33 = depan-kiri, CW
+// M2 GPIO25 = depan-kanan, CCW
+// M3 GPIO26 = belakang-kanan, CW
+// M4 GPIO27 = belakang-kiri, CCW
+//
+// Roll memakai pasangan kiri (M1/M4) melawan kanan (M2/M3).
+// Pitch memakai pasangan depan (M1/M2) melawan belakang (M3/M4).
+// Yaw memakai pasangan CW (M1/M3) melawan CCW (M2/M4).
+#define MOTOR_1 33
+#define MOTOR_2 25
+#define MOTOR_3 26
+#define MOTOR_4 27

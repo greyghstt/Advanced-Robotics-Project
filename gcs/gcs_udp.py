@@ -235,9 +235,9 @@ PID_AXIS_FIELDS = {
 DEFAULT_PID_VALUES = {
     "k_roll": 3.5,
     "k_pitch": 3.5,
-    "k_yaw": 2.0,
-    "k_roll_rate": 1.5,
-    "k_pitch_rate": 1.5,
+    "k_yaw": 4.0,
+    "k_roll_rate": 1.3,
+    "k_pitch_rate": 1.3,
     "k_yaw_rate": 0.5,
     "k_i_roll": 0.3,
     "k_i_pitch": 0.3,

@@ -162,9 +162,10 @@ void setup() {
   xTaskCreate(udpGcsTask, "UDPGCS", 4096, NULL, 1, NULL);
 #endif
 
-  vTaskStartScheduler(); // Start the scheduler
+  // Arduino ESP32 already starts the FreeRTOS scheduler before setup().
+  // Calling vTaskStartScheduler() again can crash after task creation.
 }
 
 void loop() {
-  // Kosong, semua dikendalikan oleh task
+  vTaskDelay(pdMS_TO_TICKS(1000));
 }

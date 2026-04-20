@@ -10,19 +10,44 @@
     #include "Control_modes.h"
     // float m1_pwm, m2_pwm, m3_pwm, m4_pwm;
     
-    /// Mixer frame diagonal/X.
-    /// Urutan motor diasumsikan:
-    /// M1 = depan-kiri, M2 = depan-kanan, M3 = belakang-kanan, M4 = belakang-kiri.
-    /// Pada frame X setiap motor ikut koreksi roll dan pitch sekaligus.
-    const double MIX_THRUST_COEFF = 292600.0;
-    const double MIX_ROLL_PITCH_COEFF = 1838900.0;  // 2600600 * sin/cos(45 deg)
-    const double MIX_YAW_COEFF = 6283300.0;
-    const double A_invers[4][4] = {
-        {MIX_THRUST_COEFF,  MIX_ROLL_PITCH_COEFF, -MIX_ROLL_PITCH_COEFF, -MIX_YAW_COEFF},
-        {MIX_THRUST_COEFF, -MIX_ROLL_PITCH_COEFF, -MIX_ROLL_PITCH_COEFF,  MIX_YAW_COEFF},
-        {MIX_THRUST_COEFF, -MIX_ROLL_PITCH_COEFF,  MIX_ROLL_PITCH_COEFF, -MIX_YAW_COEFF},
-        {MIX_THRUST_COEFF,  MIX_ROLL_PITCH_COEFF,  MIX_ROLL_PITCH_COEFF,  MIX_YAW_COEFF}
-    };
+    /// Mixer frame diagonal/X sesuai wiring drone ini.
+    ///
+    /// Posisi motor dilihat dari atas:
+    ///            DEPAN
+    ///      M1 GPIO33 CW     M2 GPIO25 CCW
+    ///
+    ///      M4 GPIO27 CCW    M3 GPIO26 CW
+    ///          BELAKANG
+    ///
+    /// Kolom matrix A_invers:
+    ///   [throttle, roll, pitch, yaw]
+    ///
+    /// Pola koreksi yang dipakai:
+    ///   roll  : M1+M4 melawan M2+M3
+    ///   pitch : M1+M2 melawan M3+M4
+    ///   yaw   : M1+M3 (CW) melawan M2+M4 (CCW)
+    ///
+    /// BNO055 default Euler output:
+    ///   euler.x = heading/yaw, euler.y = roll, euler.z = pitch.
+    /// Pada format default Android, heading/yaw bertambah saat wahana berputar clockwise
+    /// jika dilihat dari atas. Dengan motor M1/M3 CW dan M2/M4 CCW, u4 positif menaikkan
+    /// pasangan CCW (M2/M4), sehingga arah yaw positif mengikuti heading clockwise BNO055.
+    // const double MIX_THRUST_COEFF = 292600.0;
+    // const double MIX_ROLL_PITCH_COEFF = 1838900.0;  // 2600600 * sin/cos(45 deg)
+    // const double MIX_YAW_COEFF = 6283300.0;
+    // const double A_invers[4][4] = {
+    //     {MIX_THRUST_COEFF,  MIX_ROLL_PITCH_COEFF,  MIX_ROLL_PITCH_COEFF, -MIX_YAW_COEFF},
+    //     {MIX_THRUST_COEFF, -MIX_ROLL_PITCH_COEFF,  MIX_ROLL_PITCH_COEFF,  MIX_YAW_COEFF},
+    //     {MIX_THRUST_COEFF, -MIX_ROLL_PITCH_COEFF, -MIX_ROLL_PITCH_COEFF, -MIX_YAW_COEFF},
+    //     {MIX_THRUST_COEFF,  MIX_ROLL_PITCH_COEFF, -MIX_ROLL_PITCH_COEFF,  MIX_YAW_COEFF}
+    // };
+// F450 frame konfigurasi x
+const double A_invers[4][4] = {
+  {292600,  1300300,  1300300, -6283300},
+  {292600,  -1300300, 1300300, 6283300},
+  {292600, -1300300, -1300300, -6283300},
+  {292600, 1300300,  -1300300, 6283300}
+};
     // // wahana putri
     // const double A_invers[4][4] = {{-91600, 172800, 172800, 1471600},
     //                                {-91600, 172800, -172800, -1471600},
@@ -42,12 +67,12 @@
     float alt_ref, heading_now, last_alt, last_heading, alt_now;
     float alt_target, z_velocity;
     float roll_cmd, pitch_cmd, yaw_cmd;
-    float min_roll = -35.0f;  // 30
-    float max_roll = 35.0f;
-    float min_pitch = -35.0f;  // 25
-    float max_pitch = 35.0f;
-    float min_yaw = -20.0f;
-    float max_yaw = 20.0f;
+    float min_roll = -20.0f;  // 30
+    float max_roll = 20.0f;
+    float min_pitch = -20.0f;  // 25
+    float max_pitch = 20.0f;
+    float min_yaw = -30.0f;
+    float max_yaw = 30.0f;
     int PID_max_roll = 400;
     int PID_max_pitch = 400;
     int PID_max_yaw = 400;
@@ -86,16 +111,16 @@
     struct gains {
         float k_alt             = 2.0;    
         float k_z_velocity      = 3.0;     
-        float k_roll            = 3.5;    // V1 baseline: matched to safe pitch P
-        float k_pitch           = 3.5;    // V1 baseline: pitch P from field tuning
-        float k_yaw             = 2.0;    // conservative yaw P; tune after roll/pitch
+        float k_roll            = 3.5;    // V1 flight baseline
+        float k_pitch           = 3.5;    // V1 flight baseline
+        float k_yaw             = 4.0;    // V1 flight baseline
         float k_z_vel           = 1.0;     
-        float k_roll_rate       = 1.5;    // V1 baseline: matched to safe pitch D/rate
-        float k_pitch_rate      = 1.5;    // V1 baseline: pitch D/rate from field tuning
-        float k_yaw_rate        = 0.5;    // conservative yaw damping
-        float k_i_roll          = 0.3;    // V1 baseline: matched to safe pitch I
-        float k_i_pitch         = 0.3;    // V1 baseline: pitch I from field tuning
-        float k_i_yaw           = 0.0;    // keep yaw integral off until yaw is tested
+        float k_roll_rate       = 1.3;    // V1 flight baseline
+        float k_pitch_rate      = 1.3;    // V1 flight baseline
+        float k_yaw_rate        = 0.5;    // V1 flight baseline
+        float k_i_roll          = 0.3;    // V1 flight baseline
+        float k_i_pitch         = 0.3;    // V1 flight baseline
+        float k_i_yaw           = 0.0;    // V1 flight baseline
         // 15.05: 08.05
         int16_t roll_rmt;
         int16_t pitch_rmt;
@@ -141,6 +166,21 @@
         //     alt_target = read_altitude(); - alt_ref;
         //     z_velocity = (read_altitude() - last_alt) / delta_calc_time;
         // }
+        // TODO(yaw stability, untested):
+        // Current V1 yaw control uses delta_yaw as yaw_setpoint, so it behaves more like
+        // yaw damping than true heading hold. If yaw remains unstable, tune yaw with
+        // moderate k_yaw, stronger k_yaw_rate, and little/no k_i_yaw first.
+        //
+        // Cleaner future option for manual flight:
+        //   yaw_rate_target = yaw_cmd;
+        //   yaw_rate_error = yaw_rate_target - gz;
+        //   u4 = gain.k_yaw_rate * yaw_rate_error;
+        //
+        // Later heading-hold option:
+        //   keep yaw_target while yaw stick is centered,
+        //   yaw_error = wrap180(yaw_target - yaw),
+        //   u4 = gain.k_yaw * yaw_error - gain.k_yaw_rate * gz;
+        //
         // // yaw_setpoint = heading_now - last_heading;
         yaw_setpoint = delta_yaw;
         if (yaw_setpoint > 180) yaw_setpoint -= 360;
@@ -151,9 +191,9 @@
         pitch_cmd = (map(ch_p - 1500, min_pitch_corr, max_pitch_corr, min_pitch, max_pitch));
         yaw_cmd = (map(ch_y - 1500, min_yaw_corr, max_yaw_corr, min_yaw, max_yaw));  // 0.08
         u1 = 0.0f;                                                                                  //0.0f;(-gain.k_alt*(alt_target/1.000f) + (-gain.k_z_velocity*(z_velocity)/100.0f))/1000000.0f; //0.0f;
-        u2 = ((-gain.k_roll * ((-roll) + roll_int - (roll_cmd + trim_roll)) / 10000000.0f) + (gain.k_roll_rate * (gy) / 10000000.0f));
-        u3 = (-gain.k_pitch * ((pitch) + pitch_int - (pitch_cmd + trim_pitch)) / 10000000.0f) + (gain.k_pitch_rate * (gx) / 10000000.0f);
-        u4 = ((-gain.k_yaw * (yaw_setpoint - (yaw_cmd + trim_yaw)) / 10000000.0f) + (-gain.k_yaw_rate * (gz) / 10000000.0f));
+        u2 = ((-gain.k_roll * ((-roll) + roll_int - (roll_cmd + trim_roll)) / 10000000.0f) + (-gain.k_roll_rate * (gy) / 10000000.0f));
+        u3 = (gain.k_pitch * ((pitch) + pitch_int - (pitch_cmd + trim_pitch)) / 10000000.0f) + (-gain.k_pitch_rate * (gx) / 10000000.0f);
+        u4 = ((-gain.k_yaw * (yaw_setpoint - (yaw_cmd + trim_yaw)) / 10000000.0f) + (gain.k_yaw_rate * (gz) / 10000000.0f));
         omega2[0] = (A_invers[0][0] * u1 + A_invers[0][1] * u2 + A_invers[0][2] * u3 + A_invers[0][3] * u4);
         omega2[1] = (A_invers[1][0] * u1 + A_invers[1][1] * u2 + A_invers[1][2] * u3 + A_invers[1][3] * u4);
         omega2[2] = (A_invers[2][0] * u1 + A_invers[2][1] * u2 + A_invers[2][2] * u3 + A_invers[2][3] * u4);

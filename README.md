@@ -144,6 +144,19 @@ in `include/FlightControl.h` for open-loop tuning tests. Final ESC PWM output
 is still constrained to the configured `1000-2000 us` range in
 `include/Actuator.h`.
 
+## Known Experimental State
+
+This branch should be read as an active controller experiment, not as a final
+flight baseline:
+
+- motor correction limiting is currently left disabled
+- slew limiting is currently left disabled
+- some pre-arm restrictions are intentionally relaxed for manual bench tests
+- tuning assumptions may still change as the controller evolves
+
+The branch is useful for controller development and comparison, but it should
+not be treated as a drop-in replacement for the V1 baseline without validation.
+
 ## PID Tuning
 
 Default PID values are defined in `include/FlightControl.h`. The UDP dashboard

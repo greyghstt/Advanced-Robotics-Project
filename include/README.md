@@ -44,6 +44,17 @@ Motor correction limiting and slew limiting remain disabled in
 `FlightControl.h` for open-loop tuning tests. The final ESC PWM output remains
 constrained in `Actuator.h`.
 
+## Known Experimental State
+
+This branch intentionally exposes a more open tuning state than `master`:
+
+- correction limiting is still disabled in `FlightControl.h`
+- slew limiting is still disabled in `FlightControl.h`
+- some safety restrictions remain relaxed for manual bench tests
+
+That is intentional for controller development, but it also means this branch
+should be validated carefully before any free-flight attempt.
+
 ## Active Telemetry Mode
 
 ```cpp

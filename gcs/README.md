@@ -41,7 +41,7 @@ Connection flow:
 2. Upload the firmware to the ESP32.
 3. Open Serial Monitor and note the ESP32 IP address.
 4. Run `python gcs_udp.py`.
-5. Fill the host field with `robjut.local` or the ESP32 IP address.
+5. Fill the host field with `advanced-robotics.local` or the ESP32 IP address.
 6. Keep the default remote port at `4210`.
 7. Keep the default local port at `4211`.
 8. Click `Start UDP`.

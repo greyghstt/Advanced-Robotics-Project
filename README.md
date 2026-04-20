@@ -12,7 +12,7 @@ feedback, ESC PWM output, UDP telemetry, and a Python GCS dashboard.
 - Active branch: `version-3-experimental`.
 - Active telemetry mode: UDP GCS.
 - Dashboard application: `gcs/gcs_udp.py`.
-- Default mDNS hostname: `robjut.local`.
+- Default mDNS hostname: `advanced-robotics.local`.
 
 ## Folder Structure
 
@@ -106,7 +106,7 @@ cd <project-folder>\gcs
 python gcs_udp.py
 ```
 
-5. Fill the host field with `robjut.local` or the ESP32 IP address.
+5. Fill the host field with `advanced-robotics.local` or the ESP32 IP address.
 6. Keep the default remote port at `4210`.
 7. Click `Start UDP`.
 

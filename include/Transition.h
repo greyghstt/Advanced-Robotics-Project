@@ -1,13 +1,13 @@
 #pragma once
 
 #include "Arduino.h"
-#include "Control_modes.h"
+#include "ControlModes.h"
 #include "Radio.h"
-#include "Copter_control.h"
+#include "CopterControl.h"
 #include "Actuator.h"
 
 float mode_phase, mode_fw;
-float decrease = 0.0f;  // ignore
+float decrease = 0.0f;
 float true_aileron, true_elevator, true_rudder;
 bool takeoff_is_done = false;
 bool landing_is_done = false;
@@ -24,11 +24,12 @@ float init_pwm_land;
 float k_p = 0.0;
 float k_i = 0.0;
 float k_d = 0.0;
-int autonav_state = 0;  /// variable to check auto-loop state, delete after testing
+int autonav_state = 0;
 bool enterauto = false;
 int32_t temp_alt = 0;
 
-// Safety gate: arm hanya mengizinkan kontrol, motor baru boleh naik setelah throttle melewati ambang ini.
+// Safety gate: arming enables control, but motor output only rises after the
+// throttle crosses this minimum start threshold.
 #define MOTOR_START_THROTTLE 1100
 #define RADIO_TIMEOUT_MS 150
 

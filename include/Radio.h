@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
 
-HardwareSerial SerialSBUS(2); // UART2: RX=GPIO16, TX=GPIO17
+HardwareSerial SerialSBUS(2); // UART2, SBUS RX on GPIO35.
 
 #define SBUS_PACKET_SIZE 25
 #define SBUS_MIN_RAW 172
@@ -46,7 +46,7 @@ bool mode_vtol_plane = false;
 int mode_now = 1, prev_mode = 1;
 
 float outputScaler(uint16_t ch) {
-  return 0.002 * ch - 3;  // Skala dari 172-1811 jadi ~0-1
+  return 0.002 * ch - 3;
 }
 
 bool sbus_channel_valid(int16_t value) {
@@ -84,26 +84,25 @@ void remote_setup() {
 }
 
 void remote_loop() {
-  // Serial.println("Remote loop running");
   while (SerialSBUS.available() >= SBUS_PACKET_SIZE) {
-    // Sinkronisasi SBUS: cari byte awal 0x0F
+    // Align the SBUS stream to the frame start byte.
     if (SerialSBUS.peek() != 0x0F) {
-      SerialSBUS.read(); // buang byte tidak valid
+      SerialSBUS.read();
       continue;
     }
    
     SerialSBUS.readBytes(sbusData, SBUS_PACKET_SIZE);
 
-    // Periksa flag signal lost dan failsafe di byte akhir SBUS
-    signal_lost = (sbusData[23] & 0x04) != 0;  // Bit ke-2 (0x04) menunjukkan signal lost
-    radio_failsafe = (sbusData[23] & 0x08) != 0; // Bit ke-3 (0x08) menunjukkan failsafe
+    // SBUS status flags are stored in byte 23.
+    signal_lost = (sbusData[23] & 0x04) != 0;
+    radio_failsafe = (sbusData[23] & 0x08) != 0;
 
-    // Validasi byte akhir (opsional, bisa disesuaikan)
+    // Optional end-byte validation can be restored if this receiver needs it.
     // if (sbusData[24] != 0x00) {
     //   continue;
     // }
 
-    // Decode channel SBUS
+    // Decode 16 packed 11-bit SBUS channels.
     channels[0]  = ((sbusData[1]    | sbusData[2]  << 8) & 0x07FF);
     channels[1]  = ((sbusData[2] >> 3 | sbusData[3] << 5) & 0x07FF);
     channels[2]  = ((sbusData[3] >> 6 | sbusData[4] << 2 | sbusData[5] << 10) & 0x07FF);
@@ -123,7 +122,7 @@ void remote_loop() {
 
     if (signal_lost || radio_failsafe) {
       radio_set_safe_output();
-      // Serial print dimatikan agar Serial Monitor tidak spam saat radio invalid.
+      // Keep Serial Monitor quiet during repeated invalid-radio frames.
       // Serial.println("SBUS failsafe/signal lost, motor output forced to minimum");
       continue;
     }
@@ -142,12 +141,12 @@ void remote_loop() {
       continue;
     }
 
-    // // Peringatan jika data aneh
+    // Optional raw-channel diagnostics.
     // if (channels[0] < 100 || channels[0] > 2000) {
-    //   Serial.println("⚠️  Warning: Channel data out of range!");
+    //   Serial.println("Warning: channel data out of range");
     // }
 
-    // Konversi ke PWM (1000–2000 µs)
+    // Convert SBUS raw values to 1000-2000 us PWM-style commands.
     ch_roll     = sbus_to_pwm(channels[0], RADIO_PWM_MID);
     ch_pitch    = sbus_to_pwm(channels[1], RADIO_PWM_MID);
     ch_throttle = sbus_to_pwm(channels[2], RADIO_PWM_MIN);
@@ -166,7 +165,7 @@ void remote_loop() {
     // Serial.print("Throttle PWM: "); Serial.println(ch_throttle);
     // Serial.print("Yaw PWM: "); Serial.println(ch_yaw);
     
-    // Penentuan mode
+    // Three-position mode channel.
     prev_mode = mode_now;
     if (ch_mode < 1250) {
       mode_now = 1;

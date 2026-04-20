@@ -1,8 +1,9 @@
-//update mode
+// Optional control-mode helpers. The active V1 baseline mainly uses manual
+// attitude control; altitude and position hold remain experimental.
 #pragma once
 #include <Arduino.h>
 #include "Radio.h"
-#include "Ultrasonik.h"
+#include "Ultrasonic.h"
 
 // bool altitude_hold_mode = false;
 // bool position_hold_mode = false;
@@ -19,7 +20,7 @@ bool start;
 // int16_t nav_pitch;
 // int16_t nav_yaw;
 
-void AltHoldUpdate() //full nembak pwm
+void AltHoldUpdate()
 {
   if (ch_throttle > 1600) {
     alt_setpoint = altitude;
@@ -34,7 +35,7 @@ void AltHoldUpdate() //full nembak pwm
   }
 }
 
-//full nembak pwm
+// Position hold is kept as an experimental placeholder.
 // void PosHoldUpdate()
 // {
 //   if (ch_roll == 1500 && ch_pitch == 1500)

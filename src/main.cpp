@@ -1,15 +1,15 @@
 #include <Wire.h>
 #include <Arduino.h>
 #include <math.h>
-#include <Kalman.h>
 #include <Radio.h>
-#include <Ultrasonik.h>
+#include <Ultrasonic.h>
 #include <Actuator.h>
-#include <akuisisi.h>
-#include <Transisition.h>
-#include <Gcs_config.h>
+#include <ImuAcquisition.h>
+#include <Transition.h>
+#include <GcsConfig.h>
 /*
- * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+ * System A is archived and disabled in this V1 baseline.
+ * Reference files are kept under archive/include/.
  *
  * #if ENABLE_WIFI_HTTP_TELEMETRY
  * #include <Telemetry.h>
@@ -24,16 +24,16 @@
 #endif
 #include <utility/imumaths.h>
 
-#define IMU_time 5
-#define Ultrasonik_time 10
-#define PRINT_time 50
-#define CONTROL_time 5
-#define RADIO_time 2 //10
+#define IMU_TIME 5
+#define ULTRASONIC_TIME 10
+#define PRINT_TIME 50
+#define CONTROL_TIME 5
+#define RADIO_TIME 2
 
 TaskHandle_t Task_IMU;
-TaskHandle_t Task_Ultrasonik;
+TaskHandle_t Task_Ultrasonic;
 TaskHandle_t Task_Print;
-TaskHandle_t Task_Radio; // Tambahkan handle untuk task radio
+TaskHandle_t Task_Radio;
 
 void printUSB() {
   Serial.print("radio_ok:"); Serial.print(radio_frame_valid);
@@ -68,36 +68,36 @@ void printUSB() {
 
 void updateIMU(void *pvParameters){ 
   for(;;){
-      ambil_data_imu();
-      vTaskDelay(pdMS_TO_TICKS(IMU_time));
+      readImuData();
+      vTaskDelay(pdMS_TO_TICKS(IMU_TIME));
   }
 };
 
-void updateUltrasonik(void *pvParameters){
+void updateUltrasonic(void *pvParameters){
   for(;;){
     read_altitude();
-    vTaskDelay(pdMS_TO_TICKS(Ultrasonik_time));
+    vTaskDelay(pdMS_TO_TICKS(ULTRASONIC_TIME));
   }
 };
 
 void Print_task(void *pvParameters){
   for(;;){
       printUSB();
-      vTaskDelay(pdMS_TO_TICKS(PRINT_time));
+      vTaskDelay(pdMS_TO_TICKS(PRINT_TIME));
   }
 };
 
 void radio(void *pvParameters){
   for(;;){
       remote_loop();
-      vTaskDelay(pdMS_TO_TICKS(RADIO_time));
+      vTaskDelay(pdMS_TO_TICKS(RADIO_TIME));
   }
 };
 
 void controlThd(void *pvParameters){
   for(;;){
       Transition_sequence_manual();
-      vTaskDelay(pdMS_TO_TICKS(CONTROL_time));
+      vTaskDelay(pdMS_TO_TICKS(CONTROL_TIME));
   }
 };
 
@@ -106,10 +106,7 @@ void controlThd(void *pvParameters){
 void setup() {
   Wire.begin();
   Serial.begin(115200);
-  // Wire.beginTransmission(MPU);
-  // Wire.write(0x6B);
-  // Wire.write(0);
-  // Wire.endTransmission(); krn pake bno
+  // The current firmware uses BNO055 sensor fusion, not the old MPU setup.
   if(!bno.begin()) {
     Serial.println("BNO055 not detected");
     while(1);
@@ -117,7 +114,7 @@ void setup() {
   delay(1000);
   bno.setExtCrystalUse(true);
 
-  // bno.setMode(OPERATION_MODE_NDOF); // Mode sensor fusion
+  // bno.setMode(OPERATION_MODE_NDOF);
 
   previousTime = millis(); 
   remote_setup();
@@ -125,7 +122,8 @@ void setup() {
   init_actuator();
 
   /*
-   * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+   * System A is archived and disabled in this V1 baseline.
+   * Restore the archived headers before enabling these setup calls.
    *
    * #if ENABLE_WIFI_HTTP_TELEMETRY
    *   telemetry_setup();
@@ -141,13 +139,14 @@ void setup() {
 #endif
 
   xTaskCreate(updateIMU, "IMU", 2048, NULL, 3, &Task_IMU);
-  xTaskCreate(radio, "Radio", 4096, NULL, 2, &Task_Radio); // Diprioritaskan di level 2
-  //xTaskCreate(updateUltrasonik, "Ultrasonik", 2048, NULL, 3, &Task_Ultrasonik);
+  xTaskCreate(radio, "Radio", 4096, NULL, 2, &Task_Radio);
+  //xTaskCreate(updateUltrasonic, "Ultrasonic", 2048, NULL, 3, &Task_Ultrasonic);
   // xTaskCreate(Print_task, "Print", 4096, NULL, 3, &Task_Print);
   xTaskCreate(controlThd, "Control", 4096, NULL, 3, NULL);
 
   /*
-   * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+   * System A is archived and disabled in this V1 baseline.
+   * Restore the archived headers before enabling these tasks.
    *
    * #if ENABLE_WIFI_HTTP_TELEMETRY
    *   xTaskCreate(telemetryTask, "Telemetry", 4096, NULL, 1, NULL);

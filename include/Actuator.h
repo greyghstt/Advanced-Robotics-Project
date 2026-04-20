@@ -8,6 +8,12 @@
 #define constrain(amt, low, high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
 #endif
 
+// Quad-X motor layout, viewed from above:
+//            FRONT
+//      M1 GPIO33 CW      M2 GPIO25 CCW
+//
+//      M4 GPIO27 CCW     M3 GPIO26 CW
+//            REAR
 #define MOTOR_1_PIN  33
 #define MOTOR_2_PIN  25
 #define MOTOR_3_PIN  26

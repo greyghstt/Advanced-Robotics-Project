@@ -16,7 +16,7 @@ tests for the Advanced Robotics Project firmware.
 After tests are added, run:
 
 ```powershell
-cd C:\vscode\Advanced-Robotics-Project
+cd C:\vscode\ARP-V4
 platformio test -e esp32doit-devkit-v1
 ```
 

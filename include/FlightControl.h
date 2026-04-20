@@ -17,6 +17,19 @@
  *
  * This keeps the old telemetry/dashboard variable names, but removes the old
  * inverse-matrix scaling so tuning values are easier to reason about.
+ *
+ * Motor layout used by this V4 branch, viewed from above:
+ *
+ *            FRONT
+ *      M1 GPIO33 CW      M2 GPIO25 CCW
+ *
+ *      M4 GPIO27 CCW     M3 GPIO26 CW
+ *            REAR
+ *
+ * Mixer groups:
+ * - Roll  : left pair M1/M4 against right pair M2/M3.
+ * - Pitch : front pair M1/M2 against rear pair M3/M4.
+ * - Yaw   : CW pair M1/M3 against CCW pair M2/M4.
  */
 
 static const float V4_MAX_ROLL_ANGLE_DEG = 25.0f;
@@ -228,9 +241,10 @@ void copter_ControlFSFB(int16_t ch_r, int16_t ch_p, int16_t ch_y, int16_t ch_thr
     float pitch_out = ((gain.k_pitch_rate * pitch_rate_error) + pitch_int) * tpa;
     float yaw_out = ((gain.k_yaw * yaw_rate_target) + (-gain.k_yaw_rate * yaw_rate) + yaw_int) * tpa;
 
-    roll_out = v4_clampf(roll_out, -V4_AXIS_OUTPUT_LIMIT_US, V4_AXIS_OUTPUT_LIMIT_US);
-    pitch_out = v4_clampf(pitch_out, -V4_AXIS_OUTPUT_LIMIT_US, V4_AXIS_OUTPUT_LIMIT_US);
-    yaw_out = v4_clampf(yaw_out, -V4_YAW_OUTPUT_LIMIT_US, V4_YAW_OUTPUT_LIMIT_US);
+    // Temporarily disabled for open-loop tuning tests.
+    // roll_out = v4_clampf(roll_out, -V4_AXIS_OUTPUT_LIMIT_US, V4_AXIS_OUTPUT_LIMIT_US);
+    // pitch_out = v4_clampf(pitch_out, -V4_AXIS_OUTPUT_LIMIT_US, V4_AXIS_OUTPUT_LIMIT_US);
+    // yaw_out = v4_clampf(yaw_out, -V4_YAW_OUTPUT_LIMIT_US, V4_YAW_OUTPUT_LIMIT_US);
 
     u1 = 0.0f;
     u2 = roll_out;
@@ -241,19 +255,28 @@ void copter_ControlFSFB(int16_t ch_r, int16_t ch_p, int16_t ch_y, int16_t ch_thr
     yaw_out_debug = yaw_out;
 
     /*
-     * Quad-X direct mixer, assumed motor order:
-     * M1 front-left, M2 front-right, M3 rear-right, M4 rear-left.
-     * Positive roll_out raises left motors; positive pitch_out raises rear motors.
+     * Quad-X direct mixer for the configured motor layout:
+     *
+     *   M1 front-left  GPIO33 CW
+     *   M2 front-right GPIO25 CCW
+     *   M3 rear-right  GPIO26 CW
+     *   M4 rear-left   GPIO27 CCW
+     *
+     * Signs below intentionally match the physical groups:
+     *   +roll_out  -> M1/M4 up, M2/M3 down
+     *   +pitch_out -> M3/M4 up, M1/M2 down
+     *   +yaw_out   -> M2/M4 up, M1/M3 down
      */
     float correction[4] = {
-        roll_out - pitch_out + yaw_out,
-        -roll_out - pitch_out - yaw_out,
-        -roll_out + pitch_out + yaw_out,
-        roll_out + pitch_out - yaw_out
+        roll_out - pitch_out - yaw_out,
+        -roll_out - pitch_out + yaw_out,
+        -roll_out + pitch_out - yaw_out,
+        roll_out + pitch_out + yaw_out
     };
 
-    v4_limit_motor_corrections(correction, ch_thr);
-    v4_slew_limit_corrections(correction);
+    // Temporarily disabled for open-loop tuning tests.
+    // v4_limit_motor_corrections(correction, ch_thr);
+    // v4_slew_limit_corrections(correction);
 
     omega2[0] = correction[0] / M_CONST;
     omega2[1] = correction[1] / M_CONST;

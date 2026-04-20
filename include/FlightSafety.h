@@ -8,11 +8,9 @@
 #include "FlightControl.h"
 #include "Actuator.h"
 
-static const int16_t MOTOR_START_THROTTLE = 1100;
-static const int16_t PREARM_MAX_START_THROTTLE = 1200;
 static const unsigned long RADIO_TIMEOUT_MS = 150;
 static const unsigned long IMU_TIMEOUT_MS = 100;
-static const float PREARM_MAX_TILT_DEG = 35.0f;
+static const int16_t MOTOR_START_THROTTLE = 1100;
 
 bool motors_started = false;
 const char *flight_safety_reason = "boot";
@@ -42,16 +40,6 @@ bool flight_prearm_checks_pass() {
         return false;
     }
 
-    if (fabsf(roll) > PREARM_MAX_TILT_DEG || fabsf(pitch) > PREARM_MAX_TILT_DEG) {
-        flight_safety_reason = "tilt";
-        return false;
-    }
-
-    if (ch_throttle > PREARM_MAX_START_THROTTLE) {
-        flight_safety_reason = "throttle";
-        return false;
-    }
-
     flight_safety_reason = "ok";
     return true;
 }
@@ -70,13 +58,13 @@ void flight_safety_update() {
         return;
     }
 
-    if (ch_throttle < MOTOR_START_THROTTLE) {
-        flight_safety_reason = "idle";
+    if (!motors_started && !flight_prearm_checks_pass()) {
         stop_motors_safe();
         return;
     }
 
-    if (!motors_started && !flight_prearm_checks_pass()) {
+    if (ch_throttle < MOTOR_START_THROTTLE) {
+        flight_safety_reason = "idle";
         stop_motors_safe();
         return;
     }

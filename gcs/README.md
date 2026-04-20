@@ -15,7 +15,7 @@ The active dashboard is the WiFi UDP version.
 Use the Python installation that already has PySide6 and pyserial available.
 
 ```powershell
-cd C:\vscode\Advanced-Robotics-Project\gcs
+cd C:\vscode\ARP-V4\gcs
 python -m pip install -r requirements.txt
 ```
 
@@ -31,7 +31,7 @@ enabled:
 Run the dashboard:
 
 ```powershell
-cd C:\vscode\Advanced-Robotics-Project\gcs
+cd C:\vscode\ARP-V4\gcs
 python gcs_udp.py
 ```
 
@@ -58,6 +58,7 @@ telemetry starts streaming to the dashboard.
 - PID values can be requested automatically and loaded from telemetry.
 - PID presets can be loaded, saved, and deleted locally.
 - Telemetry can be recorded to CSV files under `gcs/logs/`.
+- Session logs are created automatically so flight data can be reviewed later.
 - Motor PWM values are shown as live bars.
 - Roll and pitch are shown on the attitude chart with a `+/-30 deg` limit.
 
@@ -96,3 +97,9 @@ drone before sending PID updates.
 
 Telemetry mode uses compile-time `#define` values, so changing modes requires
 building and uploading the firmware again.
+
+## Version 4 Note
+
+This dashboard is shared with the V4 firmware branch. It can display V4 safety
+fields such as `safety_reason`, `motors_started`, IMU calibration, and IMU sample
+count when those fields are present in the telemetry stream.

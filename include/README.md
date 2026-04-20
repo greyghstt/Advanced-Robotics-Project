@@ -37,8 +37,12 @@ The active loop includes:
 - gyro-rate damping
 - optional integral with clamp
 - high-throttle P/D attenuation
-- motor correction scaling near PWM limits
-- pre-arm checks before motors are allowed to start
+- radio, actuator, and IMU freshness checks before motors are allowed to start
+- a motor start throttle threshold at `1100 us`
+
+Motor correction limiting and slew limiting are currently commented in
+`FlightControl.h` for open-loop tuning tests. The final ESC PWM output remains
+constrained in `Actuator.h`.
 
 ## Active Telemetry Mode
 
@@ -68,4 +72,6 @@ SerialSBUS.begin(100000, SERIAL_8E2, 35, 17);
 
 - Remove all propellers before upload, motor testing, and early V4 tuning.
 - Validate correction direction before increasing throttle.
-- V4 starts with conservative defaults; tuning is expected.
+- The tilt pre-arm check is disabled in this branch to support manual tilt
+  testing while the airframe is held by hand.
+- V4 is experimental; tuning is expected before any free-flight attempt.

@@ -7,7 +7,6 @@
 
 static const uint8_t IMU_BNO055_ADDRESS = 0x28;
 static const uint16_t IMU_STARTUP_DELAY_MS = 1000;
-static const float IMU_RAD_TO_DEG = 57.2957795f;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55, IMU_BNO055_ADDRESS);
 
@@ -66,10 +65,10 @@ void imu_update() {
     pitch = euler.z();
 
     imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-    // BNO055 gyro vector is rad/s. The V4 rate controller uses deg/s.
-    gx = gyro.x() * IMU_RAD_TO_DEG;
-    gy = gyro.y() * IMU_RAD_TO_DEG;
-    gz = gyro.z() * IMU_RAD_TO_DEG;
+    // Adafruit BNO055 returns gyroscope values in dps, so no rad-to-deg conversion is needed.
+    gx = gyro.x();
+    gy = gyro.y();
+    gz = gyro.z();
 
     if (yaw >= 360.0f) yaw -= 360.0f;
     if (yaw < 0.0f) yaw += 360.0f;

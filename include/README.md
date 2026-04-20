@@ -10,36 +10,40 @@ from `src/main.cpp`.
 | --- | --- |
 | `Actuator.h` | ESC PWM output through LEDC and motor pin mapping |
 | `Radio.h` | SBUS receiver reading and remote channel mapping |
-| `Copter_control.h` | Diagonal/X mixer, PID gains, trim, and attitude control |
-| `Transisition.h` | Safety gate, arm/disarm, failsafe, and control loop |
-| `akuisisi.h` | BNO055 sensor reading |
-| `Ultrasonik.h` | Ultrasonic sensor reading |
-| `Gcs_config.h` | Active UDP GCS and WiFi configuration |
+| `CopterControl.h` | Diagonal/X mixer, PID gains, trim, and attitude control |
+| `Transition.h` | Safety gate, arm/disarm, failsafe, and control loop |
+| `ImuAcquisition.h` | BNO055 sensor reading |
+| `Ultrasonic.h` | Ultrasonic sensor reading |
+| `GcsConfig.h` | Active UDP GCS and WiFi configuration |
 | `UdpTelemetry.h` | Active telemetry and PID command handling through UDP |
-| `BluetoothTelemetry.h` | Archived Bluetooth Serial telemetry/GCS code |
-| `Telemetry.h` | Archived HTTP telemetry server code |
-| `Kalman.h`, `Kalman.cpp` | Kalman filter |
-| `Copter_config.h` | Angle and throttle limit configuration |
-| `Control_modes.h` | Control mode definitions |
-| `kendali.h` | Experimental/legacy control file |
-| `filter.h` | Filter helper |
+| `CopterConfig.h` | Angle and throttle limit configuration |
+| `ControlModes.h` | Control mode definitions |
 
 ## Common Configuration
 
 Active telemetry mode:
 
 ```cpp
-// Gcs_config.h
+// GcsConfig.h
 #define ENABLE_UDP_GCS 1
 ```
 
-The previous WiFi HTTP Telemetry and Bluetooth GCS implementations are archived
-and not used by the current firmware. UDP GCS is the only active telemetry mode.
+The previous WiFi HTTP Telemetry, Bluetooth GCS, legacy PID, and Kalman helper
+implementations are stored under `../archive/` and are not used by the current
+firmware. UDP GCS is the only active telemetry mode.
+
+WiFi credentials:
+
+```cpp
+// GcsConfig.h
+#define GCS_WIFI_SSID "INSERT_WIFI_SSID_HERE"
+#define GCS_WIFI_PASSWORD "INSERT_WIFI_PASSWORD_HERE"
+```
 
 Default PID values:
 
 ```cpp
-// Copter_control.h
+// CopterControl.h
 gains gain;
 ```
 

@@ -1,7 +1,8 @@
 # Advanced Robotics Project
 
 ESP32-based quadcopter flight controller with UDP telemetry and a Python GCS
-dashboard.
+dashboard. The `master` branch is the current V1 flight baseline that has flown
+on hardware.
 
 ## Current Status
 
@@ -10,6 +11,7 @@ dashboard.
 - Receiver: SBUS on GPIO 35.
 - ESC motor output: 50 Hz LEDC PWM.
 - Active telemetry mode: UDP GCS only.
+- Active branch purpose: stable V1 flight baseline.
 - The GCS dashboard is available in the `gcs` folder.
 - Default mDNS hostname: `robjut.local`.
 
@@ -20,6 +22,7 @@ Advanced-Robotics-Project/
 |-- include/              Firmware headers and main configuration
 |-- src/                  ESP32 firmware entry point
 |-- gcs/                  Python dashboard application
+|-- archive/              Disabled legacy telemetry and control references
 |-- lib/                  Local libraries or vendored dependencies
 |-- test/                 PlatformIO test area
 |-- platformio.ini        PlatformIO build/upload configuration
@@ -50,17 +53,12 @@ The mixer uses a diagonal/X quadcopter layout:
 1. Install Visual Studio Code.
 2. Install the PlatformIO extension.
 3. Open the project folder.
-
-Current local project path:
-
-```text
-C:\vscode\Advanced-Robotics-Project
-```
-
 4. Connect the ESP32 through USB.
 5. Build or upload using PlatformIO.
 
 ## Build and Upload
+
+Before uploading, set the WiFi SSID and password in `include/GcsConfig.h`.
 
 Using the PlatformIO UI:
 
@@ -72,7 +70,7 @@ Using the PlatformIO UI:
 Using the terminal:
 
 ```powershell
-cd C:\vscode\Advanced-Robotics-Project
+cd <project-folder>
 platformio run -e esp32doit-devkit-v1
 platformio run -e esp32doit-devkit-v1 -t upload
 ```
@@ -85,7 +83,7 @@ platformio device monitor -b 115200
 
 ## Telemetry Mode
 
-Telemetry mode is configured in `include/Gcs_config.h`.
+Telemetry mode is configured in `include/GcsConfig.h`.
 
 The current firmware uses UDP GCS only:
 
@@ -106,7 +104,7 @@ UDP GCS is used for the WiFi dashboard with low latency. Connection flow:
 4. Run the dashboard:
 
 ```powershell
-cd C:\vscode\Advanced-Robotics-Project\gcs
+cd <project-folder>\gcs
 python gcs_udp.py
 ```
 
@@ -122,9 +120,9 @@ data is sent back to the dashboard.
 Bluetooth GCS is kept as archived System A code. It is not used in the current
 firmware because UDP GCS is the active telemetry mode.
 
-The Bluetooth dashboard file, `gcs/gcs.py`, is intentionally commented out.
-To use this mode again, restore the archived Bluetooth firmware/dashboard code,
-enable the Bluetooth mode in `include/Gcs_config.h`, then rebuild and upload the
+The Bluetooth dashboard and firmware helpers are kept under `archive/`. To use
+this mode again, restore the archived Bluetooth firmware/dashboard code, enable
+the Bluetooth mode in `include/GcsConfig.h`, then rebuild and upload the
 firmware.
 
 ## Archived WiFi HTTP Telemetry
@@ -132,17 +130,42 @@ firmware.
 WiFi HTTP Telemetry is kept as archived System A code. It is not used in the
 current firmware because UDP GCS is the active telemetry mode.
 
-To use this mode again, restore the archived HTTP telemetry code, enable the
-HTTP telemetry mode in `include/Gcs_config.h`, then rebuild and upload the
-firmware. The previous HTTP telemetry endpoint used port `8080`.
+To use this mode again, restore the archived HTTP telemetry code from
+`archive/include/`, enable the HTTP telemetry mode in `include/GcsConfig.h`,
+then rebuild and upload the firmware. The previous HTTP telemetry endpoint used
+port `8080`.
+
+## Archived Control References
+
+Some older control and sensor experiments are kept for reference, but they are
+fully disabled and not compiled in the V1 baseline:
+
+| File | Archived Purpose |
+| --- | --- |
+| `archive/include/LegacyControl.h` | Older PID and mixer experiment |
+| `archive/include/Filter.h` | Older Kalman helper for an MPU6050-style IMU path |
+| `archive/include/Telemetry.h` | WiFi HTTP telemetry server |
+| `archive/include/BluetoothTelemetry.h` | Bluetooth Serial telemetry/GCS |
+| `archive/gcs/gcs_bluetooth.py` | Bluetooth dashboard archive |
+
+Active flight behavior is in `CopterControl.h`, `Transition.h`, `Radio.h`,
+`Actuator.h`, `ImuAcquisition.h`, and `UdpTelemetry.h`.
 
 ## PID Tuning
 
-Default PID values are defined in `include/Copter_control.h`. The UDP dashboard
+Default PID values are defined in `include/CopterControl.h`. The UDP dashboard
 can read the active PID values and send tuning updates through its PID panel.
 
 By default, PID updates are blocked while the drone is armed. Disarm the drone
 before sending new PID values from the dashboard.
+
+Current V1 default PID baseline:
+
+| Axis | P | I | D / Rate |
+| --- | ---: | ---: | ---: |
+| Roll | 3.5 | 0.3 | 1.3 |
+| Pitch | 3.5 | 0.3 | 1.3 |
+| Yaw | 4.0 | 0.0 | 0.5 |
 
 ## Safety Notes
 
@@ -150,12 +173,13 @@ before sending new PID values from the dashboard.
 - Make sure the motor position and rotation match the hardware table.
 - Make sure the ESCs are calibrated and share ground with the ESP32.
 - Do not change telemetry mode while the motors are armed.
-- Keep WiFi SSID/password values only in a private repository, or replace them
-  before publishing the project.
+- Replace the WiFi SSID/password placeholders in `include/GcsConfig.h` before
+  uploading the firmware.
 
 ## Further Documentation
 
 - `include/README.md` explains the firmware headers.
 - `gcs/README.md` explains the Python dashboard.
+- `archive/README.md` explains disabled reference code.
 - `lib/README.md` explains the local library folder.
 - `test/README.md` explains the PlatformIO test folder.

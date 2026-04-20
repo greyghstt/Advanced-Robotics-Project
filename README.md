@@ -9,7 +9,7 @@ feedback, ESC PWM output, UDP telemetry, and a Python GCS dashboard.
 - Framework: Arduino through PlatformIO.
 - Receiver: SBUS on GPIO 35.
 - ESC motor output: 50 Hz LEDC PWM.
-- Active branch: Version 4 experimental controller.
+- Active branch: `version-3-experimental`.
 - Active telemetry mode: UDP GCS.
 - Dashboard application: `gcs/gcs_udp.py`.
 - Default mDNS hostname: `robjut.local`.
@@ -51,17 +51,12 @@ The mixer uses a diagonal/X quadcopter layout:
 1. Install Visual Studio Code.
 2. Install the PlatformIO extension.
 3. Open the project folder.
-
-Example local project path for this worktree:
-
-```text
-C:\vscode\ARP-V4
-```
-
 4. Connect the ESP32 through USB.
 5. Build or upload using PlatformIO.
 
 ## Build and Upload
+
+Before uploading, set the WiFi SSID and password in `include/GcsConfig.h`.
 
 Using the PlatformIO UI:
 
@@ -73,7 +68,7 @@ Using the PlatformIO UI:
 Using the terminal:
 
 ```powershell
-cd C:\vscode\ARP-V4
+cd <project-folder>
 platformio run -e esp32doit-devkit-v1
 platformio run -e esp32doit-devkit-v1 -t upload
 ```
@@ -88,7 +83,7 @@ platformio device monitor -b 115200
 
 Telemetry mode is configured in `include/GcsConfig.h`.
 
-The Version 4 firmware uses UDP GCS only:
+The Version 3 experimental firmware uses UDP GCS only:
 
 ```cpp
 #define ENABLE_UDP_GCS 1
@@ -107,7 +102,7 @@ UDP GCS is used for the WiFi dashboard with low latency. Connection flow:
 4. Run the dashboard:
 
 ```powershell
-cd C:\vscode\ARP-V4\gcs
+cd <project-folder>\gcs
 python gcs_udp.py
 ```
 
@@ -118,23 +113,23 @@ python gcs_udp.py
 The dashboard sends `HELLO` to the ESP32. After the ESP32 receives it, telemetry
 data is sent back to the dashboard.
 
-## Version 4 Firmware
+## Version 3 Experimental Firmware
 
-Version 4 is a clean experimental flight-controller branch. It keeps the same
-ESP32 board, motor pins, SBUS receiver pin, UDP dashboard, and Python GCS, while
-the flight-control layer is rebuilt around a clearer cascaded controller:
+This branch is a clean experimental flight-controller path. It keeps the same
+ESP32 board, motor pins, SBUS receiver pin, UDP dashboard, and Python GCS,
+while the flight-control layer is rebuilt around a clearer cascaded controller:
 
 ```text
 RC stick -> target angle/rate -> PID/rate correction -> Quad-X motor mix
 ```
 
-The old archived Bluetooth GCS, HTTP telemetry, Kalman helper, and legacy
-experimental control files are not part of this branch. UDP GCS is the active
-telemetry mode.
+The old Bluetooth GCS, HTTP telemetry, Kalman helper, and legacy experimental
+control files are not part of this branch. UDP GCS is the only active telemetry
+mode.
 
-## Version 4 Safety State
+## Version 3 Safety State
 
-The current V4 safety gate keeps the checks that are useful during tuning:
+The current V3 safety gate keeps the checks that are useful during tuning:
 
 - radio frame validity, SBUS failsafe, and radio timeout
 - disarm state
@@ -142,11 +137,11 @@ The current V4 safety gate keeps the checks that are useful during tuning:
 - recent IMU update
 - motor start throttle threshold at `1100 us`
 
-The tilt pre-arm check and high-throttle pre-arm block are disabled in this
+The tilt pre-arm check and high-throttle pre-arm block remain disabled in this
 worktree because manual bench testing often requires holding the airframe at a
-large angle. Roll, pitch, yaw, and mixer output limiting are also temporarily
-commented in `include/FlightControl.h` for open-loop tuning tests. Final ESC
-PWM output is still constrained to the configured `1000-2000 us` range in
+large angle. Roll, pitch, yaw, and mixer output limiting are also left disabled
+in `include/FlightControl.h` for open-loop tuning tests. Final ESC PWM output
+is still constrained to the configured `1000-2000 us` range in
 `include/Actuator.h`.
 
 ## PID Tuning
@@ -163,14 +158,14 @@ before sending new PID values from the dashboard.
 - Make sure the motor position and rotation match the hardware table.
 - Make sure the ESCs are calibrated and share ground with the ESP32.
 - Do not change telemetry mode while the motors are armed.
-- Start V4 tuning with small gains because the temporary open-loop tuning state
+- Start tuning with small gains because the current open-loop tuning state
   allows larger controller corrections before the final ESC PWM clamp.
-- Keep WiFi SSID/password values only in a private repository, or replace them
-  before publishing the project.
+- Replace the WiFi SSID/password placeholders in `include/GcsConfig.h` before
+  uploading the firmware.
 
 ## Further Documentation
 
-- `include/README.md` explains the Version 4 firmware headers.
+- `include/README.md` explains the experimental firmware headers.
 - `gcs/README.md` explains the Python dashboard.
 - `lib/README.md` explains the local library folder.
 - `test/README.md` explains the PlatformIO test folder.

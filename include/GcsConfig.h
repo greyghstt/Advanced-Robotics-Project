@@ -2,8 +2,9 @@
 
 #define ENABLE_UDP_GCS 1
 
-#define GCS_WIFI_SSID "grey"
-#define GCS_WIFI_PASSWORD "1234567@"
+// Replace these placeholders before uploading the firmware.
+#define GCS_WIFI_SSID "INSERT_WIFI_SSID_HERE"
+#define GCS_WIFI_PASSWORD "INSERT_WIFI_PASSWORD_HERE"
 #define GCS_MDNS_HOSTNAME "robjut"
 
 #define UDP_GCS_LISTEN_PORT 4210

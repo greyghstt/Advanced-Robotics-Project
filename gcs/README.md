@@ -15,7 +15,7 @@ The active dashboard is the WiFi UDP version.
 Use the Python installation that already has PySide6 and pyserial available.
 
 ```powershell
-cd C:\vscode\ARP-V4\gcs
+cd <project-folder>\gcs
 python -m pip install -r requirements.txt
 ```
 
@@ -31,7 +31,7 @@ enabled:
 Run the dashboard:
 
 ```powershell
-cd C:\vscode\ARP-V4\gcs
+cd <project-folder>\gcs
 python gcs_udp.py
 ```
 
@@ -98,8 +98,8 @@ drone before sending PID updates.
 Telemetry mode uses compile-time `#define` values, so changing modes requires
 building and uploading the firmware again.
 
-## Version 4 Note
+## Experimental Branch Note
 
-This dashboard is shared with the V4 firmware branch. It can display V4 safety
-fields such as `safety_reason`, `motors_started`, IMU calibration, and IMU sample
-count when those fields are present in the telemetry stream.
+This dashboard is shared with the experimental firmware branch. It can display
+extra fields such as `safety_reason`, `motors_started`, IMU calibration, and
+IMU sample count when those fields are present in the telemetry stream.

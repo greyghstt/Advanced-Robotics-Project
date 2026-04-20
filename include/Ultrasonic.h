@@ -1,5 +1,5 @@
-#ifndef ULTRASONIK_H
-#define ULTRASONIK_H
+#ifndef ULTRASONIC_H
+#define ULTRASONIC_H
 #include <Arduino.h>
 
 #define TRIG_PIN 12
@@ -31,4 +31,4 @@ float read_altitude() {
   return distance;
 }
 
-#endif // ULTRASONIK_H
+#endif // ULTRASONIC_H

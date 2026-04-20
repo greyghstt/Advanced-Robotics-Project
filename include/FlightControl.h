@@ -1,5 +1,5 @@
-#ifndef COPTER_CONTROL_H
-#define COPTER_CONTROL_H
+#ifndef FLIGHT_CONTROL_H
+#define FLIGHT_CONTROL_H
 
 #include <Arduino.h>
 #include <math.h>

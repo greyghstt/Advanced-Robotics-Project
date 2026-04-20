@@ -1,7 +1,7 @@
 #pragma once
 
-// Sistem A - WiFi HTTP Telemetry disimpan sebagai arsip.
-// Mode aktif saat ini adalah UDP GCS, jadi isi file ini tidak dikompilasi.
+// System A WiFi HTTP telemetry archive.
+// UDP GCS is the active mode, so this file is intentionally not compiled.
 #if 0
 
 #include <Arduino.h>
@@ -9,12 +9,12 @@
 #include <ESPmDNS.h>
 #include <WebServer.h>
 
-#include "Gcs_config.h"
+#include "GcsConfig.h"
 #include "Radio.h"
 #include "Actuator.h"
-#include "akuisisi.h"
+#include "ImuAcquisition.h"
 
-// Ganti SSID dan password ini sebelum upload.
+// Override these values before uploading if this archived mode is restored.
 #ifndef TELEMETRY_WIFI_SSID
 #define TELEMETRY_WIFI_SSID GCS_WIFI_SSID
 #endif
@@ -239,4 +239,4 @@ void telemetryTask(void *pvParameters) {
     }
 }
 
-#endif // Sistem A - WiFi HTTP Telemetry archive
+#endif // System A WiFi HTTP telemetry archive

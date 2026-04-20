@@ -1,6 +1,11 @@
 #pragma once
 
-#include <akuisisi.h>
+// Archived legacy PID experiment.
+// This file is not included by the active V1 firmware path. The code is kept as
+// historical reference only and is intentionally excluded from compilation.
+#if 0
+
+#include <ImuAcquisition.h>
 
 float setpoint = 0.0;
 float alt;
@@ -14,7 +19,7 @@ float KpRoll = 10.0, KpPitch = 10.0, KpYaw = 10.0;
 float KiRoll = 0.0, KiPitch = 0.0, KiYaw = 0.0;
 float KdRoll = 3.0, KdPitch = 3.0, KdYaw = 3.0;
 float integralRoll = 0.0, integralPitch = 0.0, integralYaw = 0.0;
-float previousErrorRoll = 0.0, previousErrorPitch = 0.0, previousErrorYaw = 0.0;// Assuming a time step of 0.01 seconds
+float previousErrorRoll = 0.0, previousErrorPitch = 0.0, previousErrorYaw = 0.0;
 const double A_inverse [4][4] = {
     {b, -lb, 0, k},
     {b, 0, lb, -k},
@@ -22,7 +27,7 @@ const double A_inverse [4][4] = {
     {b, 0, -lb, -k}
 };
 
-void kendali (){
+void legacyControl() {
     if (dt <= 0.0f || b == 0.0f || k == 0.0f || lb == 0.0f) {
         return;
     }
@@ -58,3 +63,5 @@ void kendali (){
     previousErrorPitch = errorPitch;
     previousErrorYaw = errorYaw;
 }
+
+#endif // Archived legacy PID experiment

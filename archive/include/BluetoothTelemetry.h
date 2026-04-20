@@ -1,16 +1,16 @@
 #pragma once
 
-// Sistem A - Bluetooth GCS disimpan sebagai arsip.
-// Mode aktif saat ini adalah UDP GCS, jadi isi file ini tidak dikompilasi.
+// System A Bluetooth GCS archive.
+// UDP GCS is the active mode, so this file is intentionally not compiled.
 #if 0
 
 #include <Arduino.h>
 #include <BluetoothSerial.h>
 
-#include "Gcs_config.h"
+#include "GcsConfig.h"
 #include "Radio.h"
 #include "Actuator.h"
-#include "akuisisi.h"
+#include "ImuAcquisition.h"
 
 #define BT_GCS_DEVICE_NAME "Robjut-GCS"
 #define BT_GCS_TASK_PERIOD_MS 20
@@ -341,4 +341,4 @@ void btGcsTask(void *pvParameters) {
     }
 }
 
-#endif // Sistem A - Bluetooth GCS archive
+#endif // System A Bluetooth GCS archive

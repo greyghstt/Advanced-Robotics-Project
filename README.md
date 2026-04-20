@@ -151,6 +151,16 @@ Unlike the `master` branch, this V2-old branch still keeps `Kalman.h`,
 `Kalman.cpp`, and `filter.h` active because the older IMU path still references
 them.
 
+## Legacy Sensor Path Note
+
+This branch intentionally preserves the older active sensor-processing path that
+was used around the V2 control baseline:
+
+- `Kalman.h`, `Kalman.cpp`, and `filter.h` remain active in the firmware build.
+- Their presence is intentional for branch fidelity, not leftover clutter.
+- The branch is kept so the older control behavior can still be reviewed,
+  compared, and rebuilt without being rewritten into the newer V1 layout.
+
 ## PID Tuning
 
 Default PID values are defined in `include/Copter_control.h`. The UDP dashboard

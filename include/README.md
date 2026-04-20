@@ -47,6 +47,10 @@ Unlike the `master` branch, the V2-old firmware still keeps `Kalman.h`,
 `Kalman.cpp`, and `filter.h` active because the legacy IMU path depends on
 them.
 
+This is intentional in `version-2-old`: the branch is meant to preserve the
+older active control stack for comparison, not to modernize it into the newer
+V1 or experimental V3 layout.
+
 WiFi credentials:
 
 ```cpp

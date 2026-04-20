@@ -11,7 +11,7 @@
 // Used by the active UDP GCS mode.
 #define GCS_WIFI_SSID "INSERT_WIFI_SSID_HERE"
 #define GCS_WIFI_PASSWORD "INSERT_WIFI_PASSWORD_HERE"
-#define GCS_MDNS_HOSTNAME "robjut"
+#define GCS_MDNS_HOSTNAME "advanced-robotics"
 
 // UDP GCS settings.
 #define UDP_GCS_LISTEN_PORT 4210

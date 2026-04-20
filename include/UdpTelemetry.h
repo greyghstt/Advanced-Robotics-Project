@@ -355,7 +355,7 @@ void udp_gcs_setup() {
     Serial.println(WiFi.localIP());
 
     if (MDNS.begin(GCS_MDNS_HOSTNAME)) {
-        MDNS.addService("robjut-udp", "udp", UDP_GCS_LISTEN_PORT);
+        MDNS.addService("advanced-robotics-udp", "udp", UDP_GCS_LISTEN_PORT);
         Serial.print("UDP GCS mDNS: ");
         Serial.print(GCS_MDNS_HOSTNAME);
         Serial.print(".local:");

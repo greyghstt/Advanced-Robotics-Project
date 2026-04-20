@@ -13,7 +13,7 @@ while keeping the repository layout tidy and easier to navigate.
 - Active telemetry mode: UDP GCS only.
 - Active branch purpose: archived V2-old flight baseline.
 - The GCS dashboard is available in the `gcs` folder.
-- Default mDNS hostname: `robjut.local`.
+- Default mDNS hostname: `advanced-robotics.local`.
 
 ## Folder Structure
 
@@ -108,7 +108,7 @@ cd <project-folder>\gcs
 python gcs_udp.py
 ```
 
-5. Fill the host field with `robjut.local` or the ESP32 IP address.
+5. Fill the host field with `advanced-robotics.local` or the ESP32 IP address.
 6. Keep the default remote port at `4210`.
 7. Click `Start UDP`.
 

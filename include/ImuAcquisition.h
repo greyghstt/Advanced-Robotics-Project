@@ -50,9 +50,11 @@ void readImuData() {
     if(yaw >= 360.0) yaw -= 360.0;
     if(yaw < 0.0) yaw += 360.0;
 
-    // TODO(yaw stability, untested): wrap delta_yaw here before it is used by yaw control.
-    // The current V1 yaw loop still wraps yaw_setpoint in CopterControl.h, but wrapping at
-    // the source would avoid a possible yaw jump when heading crosses 0/360 degrees.
+    // Known V1 yaw note:
+    // The current V1 yaw loop still wraps yaw_setpoint in CopterControl.h. Wrapping
+    // delta_yaw here at the source would be cleaner and could avoid a possible yaw jump
+    // when heading crosses 0/360 degrees, but that change is intentionally left inactive
+    // until it is tested as a real V1 update.
     //
     // Proposed change:
     // delta_yaw = yaw - prev_yaw;

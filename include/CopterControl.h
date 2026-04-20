@@ -172,10 +172,13 @@ const double A_invers[4][4] = {
         //     z_velocity = (read_altitude() - last_alt) / delta_calc_time;
         // }
 
-        // TODO(yaw stability, untested):
+        // Known V1 yaw note:
         // Current V1 yaw control uses delta_yaw as yaw_setpoint, so it behaves more like
-        // yaw damping than true heading hold. If yaw remains unstable, tune yaw with
-        // moderate k_yaw, stronger k_yaw_rate, and little/no k_i_yaw first.
+        // yaw damping than true heading hold. This branch keeps that flown baseline
+        // unchanged on purpose. If yaw remains unstable, tune yaw with moderate
+        // k_yaw, stronger k_yaw_rate, and little/no k_i_yaw first.
+        //
+        // Commented options below are kept only as future reference.
         //
         // Cleaner future option for manual flight:
         //   yaw_rate_target = yaw_cmd;

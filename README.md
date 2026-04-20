@@ -15,6 +15,18 @@ on hardware.
 - The GCS dashboard is available in the `gcs` folder.
 - Default mDNS hostname: `robjut.local`.
 
+## Branch Guide
+
+The repository currently uses three main firmware branches:
+
+| Branch | Purpose |
+| --- | --- |
+| `master` | Current V1 flight baseline and main reference branch |
+| `version-2-old` | Older V2 control baseline kept for comparison and legacy tuning review |
+| `version-3-experimental` | Experimental controller rewrite with a cleaner flight-control structure |
+
+If you only want the latest stable project layout, start from `master`.
+
 ## Folder Structure
 
 ```text
@@ -166,6 +178,18 @@ Current V1 default PID baseline:
 | Roll | 3.5 | 0.3 | 1.3 |
 | Pitch | 3.5 | 0.3 | 1.3 |
 | Yaw | 4.0 | 0.0 | 0.5 |
+
+## V1 Yaw Note
+
+The current V1 branch has already flown, but its yaw loop should still be read
+as a practical field baseline rather than a finished heading-hold design.
+
+- `delta_yaw` is still used as the internal yaw setpoint input.
+- The active yaw loop behaves closer to yaw damping and manual yaw-rate
+  stabilization than a full heading-hold controller.
+- Additional wrap handling and a cleaner yaw-rate or heading-hold redesign are
+  documented in code comments for future work, but are intentionally not active
+  in the current V1 baseline.
 
 ## Safety Notes
 

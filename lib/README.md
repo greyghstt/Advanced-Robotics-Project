@@ -5,14 +5,8 @@ libraries placed here and links them into the firmware.
 
 ## Current Contents
 
-This folder currently contains a vendored dependency:
-
-```text
-freertos-teensy-11.0.1_v1/
-```
-
-The README files inside that dependency are upstream library documentation and
-do not need to be edited for the Advanced Robotics Project documentation.
+This branch currently does not use any vendored local library folder contents.
+Dependencies are pulled through the PlatformIO Registry from `platformio.ini`.
 
 ## Adding a Local Library
 

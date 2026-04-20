@@ -16,13 +16,10 @@ from `src/main.cpp`.
 | `Ultrasonik.h` | Ultrasonic sensor reading |
 | `Gcs_config.h` | Active UDP GCS and WiFi configuration |
 | `UdpTelemetry.h` | Active telemetry and PID command handling through UDP |
-| `BluetoothTelemetry.h` | Archived Bluetooth Serial telemetry/GCS code |
-| `Telemetry.h` | Archived HTTP telemetry server code |
-| `Kalman.h`, `Kalman.cpp` | Kalman filter |
+| `Kalman.h`, `Kalman.cpp` | Active Kalman helper used by the V2-old IMU path |
 | `Copter_config.h` | Angle and throttle limit configuration |
 | `Control_modes.h` | Control mode definitions |
-| `kendali.h` | Experimental/legacy control file |
-| `filter.h` | Filter helper |
+| `filter.h` | Active filter helper used by the V2-old IMU path |
 
 ## Common Configuration
 
@@ -34,7 +31,29 @@ Active telemetry mode:
 ```
 
 The previous WiFi HTTP Telemetry and Bluetooth GCS implementations are archived
-and not used by the current firmware. UDP GCS is the only active telemetry mode.
+and not used by the current firmware. UDP GCS is the only active telemetry
+mode.
+
+Archived files are stored under `../archive/`:
+
+| Archived File | Purpose |
+| --- | --- |
+| `../archive/include/BluetoothTelemetry.h` | Bluetooth Serial telemetry/GCS |
+| `../archive/include/Telemetry.h` | WiFi HTTP telemetry server |
+| `../archive/include/kendali.h` | Older control experiment |
+| `../archive/gcs/gcs.py` | Bluetooth dashboard archive |
+
+Unlike the `master` branch, the V2-old firmware still keeps `Kalman.h`,
+`Kalman.cpp`, and `filter.h` active because the legacy IMU path depends on
+them.
+
+WiFi credentials:
+
+```cpp
+// Gcs_config.h
+#define GCS_WIFI_SSID "INSERT_WIFI_SSID_HERE"
+#define GCS_WIFI_PASSWORD "INSERT_WIFI_PASSWORD_HERE"
+```
 
 Default PID values:
 
@@ -65,5 +84,6 @@ SerialSBUS.begin(100000, SERIAL_8E2, 35, 17);
 - Change compile-time configuration only when the firmware will be rebuilt and
   uploaded again.
 - Avoid changing radio mapping if the receiver is already reading reliably.
+- Before uploading, replace the WiFi placeholders in `Gcs_config.h`.
 - For early tuning, remove the propellers and disarm before sending new PID
   values.

@@ -9,14 +9,14 @@
 #include <Transisition.h>
 #include <Gcs_config.h>
 /*
- * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+ * System A is archived and not used in this branch.
  *
  * #if ENABLE_WIFI_HTTP_TELEMETRY
- * #include <Telemetry.h>
+ * #include <archive/include/Telemetry.h>
  * #endif
  *
  * #if ENABLE_BT_GCS
- * #include <BluetoothTelemetry.h>
+ * #include <archive/include/BluetoothTelemetry.h>
  * #endif
  */
 #if ENABLE_UDP_GCS
@@ -33,7 +33,7 @@
 TaskHandle_t Task_IMU;
 TaskHandle_t Task_Ultrasonik;
 TaskHandle_t Task_Print;
-TaskHandle_t Task_Radio; // Tambahkan handle untuk task radio
+TaskHandle_t Task_Radio; // Radio task handle.
 
 void printUSB() {
   Serial.print("radio_ok:"); Serial.print(radio_frame_valid);
@@ -109,7 +109,7 @@ void setup() {
   // Wire.beginTransmission(MPU);
   // Wire.write(0x6B);
   // Wire.write(0);
-  // Wire.endTransmission(); krn pake bno
+  // Wire.endTransmission(); replaced by the BNO055 path.
   if(!bno.begin()) {
     Serial.println("BNO055 not detected");
     while(1);
@@ -125,7 +125,7 @@ void setup() {
   init_actuator();
 
   /*
-   * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+   * System A is archived and not used in this branch.
    *
    * #if ENABLE_WIFI_HTTP_TELEMETRY
    *   telemetry_setup();
@@ -141,13 +141,13 @@ void setup() {
 #endif
 
   xTaskCreate(updateIMU, "IMU", 2048, NULL, 3, &Task_IMU);
-  xTaskCreate(radio, "Radio", 4096, NULL, 2, &Task_Radio); // Diprioritaskan di level 2
+  xTaskCreate(radio, "Radio", 4096, NULL, 2, &Task_Radio); // Prioritized at level 2.
   //xTaskCreate(updateUltrasonik, "Ultrasonik", 2048, NULL, 3, &Task_Ultrasonik);
   // xTaskCreate(Print_task, "Print", 4096, NULL, 3, &Task_Print);
   xTaskCreate(controlThd, "Control", 4096, NULL, 3, NULL);
 
   /*
-   * Sistem A disimpan sebagai arsip dan tidak dipakai pada versi ini.
+   * System A is archived and not used in this branch.
    *
    * #if ENABLE_WIFI_HTTP_TELEMETRY
    *   xTaskCreate(telemetryTask, "Telemetry", 4096, NULL, 1, NULL);
@@ -166,5 +166,5 @@ void setup() {
 }
 
 void loop() {
-  // Kosong, semua dikendalikan oleh task
+  // Empty: all work runs through FreeRTOS tasks.
 }

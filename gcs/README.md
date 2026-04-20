@@ -8,7 +8,6 @@ The active dashboard is the WiFi UDP version.
 | File | Purpose |
 | --- | --- |
 | `gcs_udp.py` | Active WiFi UDP dashboard |
-| `gcs.py` | Commented Bluetooth Serial archive |
 | `requirements.txt` | Python dashboard dependencies |
 
 ## Dependencies
@@ -16,7 +15,7 @@ The active dashboard is the WiFi UDP version.
 Use the Python installation that already has PySide6 and pyserial available.
 
 ```powershell
-cd C:\vscode\Advanced-Robotics-Project\gcs
+cd <project-folder>\gcs
 python -m pip install -r requirements.txt
 ```
 
@@ -32,7 +31,7 @@ enabled:
 Run the dashboard:
 
 ```powershell
-cd C:\vscode\Advanced-Robotics-Project\gcs
+cd <project-folder>\gcs
 python gcs_udp.py
 ```
 
@@ -67,10 +66,9 @@ telemetry starts streaming to the dashboard.
 Bluetooth GCS is kept as archived System A code. It is not used in the current
 firmware because UDP GCS is the active mode.
 
-The Bluetooth dashboard file, `gcs.py`, is intentionally commented out. To use
-this mode again, restore the archived Bluetooth firmware/dashboard code, enable
-the Bluetooth mode in `include/Gcs_config.h`, then rebuild and upload the
-firmware.
+The Bluetooth dashboard has been moved to `../archive/gcs/gcs.py`. To use this
+mode again, restore the archived Bluetooth firmware/dashboard code, enable the
+Bluetooth mode in `include/Gcs_config.h`, then rebuild and upload the firmware.
 
 ## Telemetry Format
 

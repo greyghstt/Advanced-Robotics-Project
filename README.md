@@ -1,7 +1,8 @@
 # Advanced Robotics Project
 
 ESP32-based quadcopter flight controller with UDP telemetry and a Python GCS
-dashboard.
+dashboard. The `version-2-old` branch preserves the older V2 control baseline
+while keeping the repository layout tidy and easier to navigate.
 
 ## Current Status
 
@@ -10,6 +11,7 @@ dashboard.
 - Receiver: SBUS on GPIO 35.
 - ESC motor output: 50 Hz LEDC PWM.
 - Active telemetry mode: UDP GCS only.
+- Active branch purpose: archived V2-old flight baseline.
 - The GCS dashboard is available in the `gcs` folder.
 - Default mDNS hostname: `robjut.local`.
 
@@ -20,6 +22,7 @@ Advanced-Robotics-Project/
 |-- include/              Firmware headers and main configuration
 |-- src/                  ESP32 firmware entry point
 |-- gcs/                  Python dashboard application
+|-- archive/              Disabled legacy telemetry and control references
 |-- lib/                  Local libraries or vendored dependencies
 |-- test/                 PlatformIO test area
 |-- platformio.ini        PlatformIO build/upload configuration
@@ -50,17 +53,12 @@ The mixer uses a diagonal/X quadcopter layout:
 1. Install Visual Studio Code.
 2. Install the PlatformIO extension.
 3. Open the project folder.
-
-Current local project path:
-
-```text
-C:\vscode\Advanced-Robotics-Project
-```
-
 4. Connect the ESP32 through USB.
 5. Build or upload using PlatformIO.
 
 ## Build and Upload
+
+Before uploading, set the WiFi SSID and password in `include/Gcs_config.h`.
 
 Using the PlatformIO UI:
 
@@ -72,7 +70,7 @@ Using the PlatformIO UI:
 Using the terminal:
 
 ```powershell
-cd C:\vscode\Advanced-Robotics-Project
+cd <project-folder>
 platformio run -e esp32doit-devkit-v1
 platformio run -e esp32doit-devkit-v1 -t upload
 ```
@@ -106,7 +104,7 @@ UDP GCS is used for the WiFi dashboard with low latency. Connection flow:
 4. Run the dashboard:
 
 ```powershell
-cd C:\vscode\Advanced-Robotics-Project\gcs
+cd <project-folder>\gcs
 python gcs_udp.py
 ```
 
@@ -122,19 +120,36 @@ data is sent back to the dashboard.
 Bluetooth GCS is kept as archived System A code. It is not used in the current
 firmware because UDP GCS is the active telemetry mode.
 
-The Bluetooth dashboard file, `gcs/gcs.py`, is intentionally commented out.
-To use this mode again, restore the archived Bluetooth firmware/dashboard code,
-enable the Bluetooth mode in `include/Gcs_config.h`, then rebuild and upload the
-firmware.
+The Bluetooth dashboard and firmware helper are now kept under `archive/`. To
+use this mode again, restore the archived Bluetooth firmware/dashboard code,
+enable the Bluetooth mode in `include/Gcs_config.h`, then rebuild and upload
+the firmware.
 
 ## Archived WiFi HTTP Telemetry
 
 WiFi HTTP Telemetry is kept as archived System A code. It is not used in the
 current firmware because UDP GCS is the active telemetry mode.
 
-To use this mode again, restore the archived HTTP telemetry code, enable the
-HTTP telemetry mode in `include/Gcs_config.h`, then rebuild and upload the
-firmware. The previous HTTP telemetry endpoint used port `8080`.
+To use this mode again, restore the archived HTTP telemetry code from
+`archive/include/`, enable the HTTP telemetry mode in `include/Gcs_config.h`,
+then rebuild and upload the firmware. The previous HTTP telemetry endpoint used
+port `8080`.
+
+## Archived Control References
+
+Some older control and telemetry experiments are kept for reference, but they
+are fully disabled and are not part of the active V2-old build:
+
+| File | Archived Purpose |
+| --- | --- |
+| `archive/include/kendali.h` | Older control experiment |
+| `archive/include/Telemetry.h` | WiFi HTTP telemetry server |
+| `archive/include/BluetoothTelemetry.h` | Bluetooth Serial telemetry/GCS |
+| `archive/gcs/gcs.py` | Bluetooth dashboard archive |
+
+Unlike the `master` branch, this V2-old branch still keeps `Kalman.h`,
+`Kalman.cpp`, and `filter.h` active because the older IMU path still references
+them.
 
 ## PID Tuning
 
@@ -150,12 +165,13 @@ before sending new PID values from the dashboard.
 - Make sure the motor position and rotation match the hardware table.
 - Make sure the ESCs are calibrated and share ground with the ESP32.
 - Do not change telemetry mode while the motors are armed.
-- Keep WiFi SSID/password values only in a private repository, or replace them
-  before publishing the project.
+- Replace the WiFi SSID/password placeholders in `include/Gcs_config.h` before
+  uploading the firmware.
 
 ## Further Documentation
 
 - `include/README.md` explains the firmware headers.
 - `gcs/README.md` explains the Python dashboard.
+- `archive/README.md` explains disabled reference code.
 - `lib/README.md` explains the local library folder.
 - `test/README.md` explains the PlatformIO test folder.
